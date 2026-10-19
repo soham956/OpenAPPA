@@ -1,0 +1,34 @@
+{
+  "name": "clearance",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Hashirai Clearance POC: Drive classifier plus OpenAPPA-enforced scripted agent",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "start": "tsx src/cli/start.ts",
+    "agent": "tsx src/cli/agent.ts",
+    "reset": "tsx src/cli/reset.ts",
+    "drop": "tsx src/cli/drop.ts",
+    "compare": "tsx src/cli/compare.ts",
+    "drive:check": "tsx src/cli/drive-check.ts",
+    "fixture:record": "tsx src/cli/record-fixture.ts",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "policy:check": "\"${APPA_BIN:-appa}\" describe --config appa.toml --check && \"${APPA_BIN:-appa}\" replay --config appa.toml policy-tests/"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.32.1",
+    "@typesafe-ai/sdk": "0.7.0",
+    "dotenv": "^18.0.8",
+    "googleapis": "^186.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.5",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.5"
+  }
+}
