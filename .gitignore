@@ -44,3 +44,9 @@ credentials.db*
 .env.*
 !.env.example
 secrets/
+
+# Clearance package (clearance/): deps and runtime output
+/clearance/node_modules/
+/clearance/state/
+/clearance/logs/
+/clearance/runs/
