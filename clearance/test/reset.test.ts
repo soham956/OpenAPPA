@@ -4,9 +4,9 @@ import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { main as dropMain } from '../src/cli/drop';
 import { main as resetMain } from '../src/cli/reset';
-import { CLEARANCE_DIR, buildPaths, loadConfig } from '../src/config';
+import { CLEARANCE_DIR, ConfigError, buildPaths, loadConfig } from '../src/config';
 import { FakeDriveClient } from '../src/drive/fake';
-import { type ResetPaths, ResetRefusedError, drop, notWiredDriveFactory, reset, sidecarUrlFor } from '../src/reset/reset';
+import { type ResetPaths, ResetRefusedError, drop, liveDriveFactory, reset, sidecarUrlFor } from '../src/reset/reset';
 
 const SEED_DIR = join(CLEARANCE_DIR, 'seed');
 const SEEDS = readdirSync(SEED_DIR).filter((n) => /^(0[1-9]|10)-.+\.txt$/.test(n)).sort();
@@ -184,7 +184,12 @@ describe('CLIs', () => {
     err.mockRestore();
   });
 
-  it('the placeholder factory fails clearly until T3.2 is wired', async () => {
-    await expect(notWiredDriveFactory(cliConfig())).rejects.toThrow(/T3\.2/);
+  it('the default factory is the live client and refuses without credentials (no network, temp root)', async () => {
+    // The temp repo root has no secrets/, so the factory fails before any Drive call.
+    await expect(liveDriveFactory(cliConfig())).rejects.toThrow(ConfigError);
+    const err = vi.spyOn(console, 'error').mockImplementation(() => {});
+    expect(await resetMain({ config: cliConfig(), fetchImpl: down, log: quiet })).toBe(1);
+    expect(err).toHaveBeenCalledWith(expect.stringMatching(/not found|token/i));
+    err.mockRestore();
   });
 });
