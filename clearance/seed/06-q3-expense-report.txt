@@ -1,0 +1,33 @@
+SPECIMEN — synthetic test document, not real data
+
+QUARTERLY EXPENSE REPORT: Q3 2026
+Department: Operations (fictional)
+Company: Orbit Harbour Systems Ltd
+Prepared by: finance team, finance@orbit-harbour.test
+Period: 1 July to 30 September 2026
+
+Date        Category        Description                       Net      VAT     Gross
+07 Jul      Travel          Train to client workshop         84.00    0.00     84.00
+15 Jul      Software        Design tool subscription         96.00   19.20    115.20
+02 Aug      Meals           Team lunch (6 people)           132.50   26.50    159.00
+19 Aug      Travel          Taxi, airport transfer           48.00    9.60     57.60
+04 Sep      Equipment       Laptop dock x2                  210.00   42.00    252.00
+11 Sep      Office          Printer toner                    68.40   13.68     82.08
+23 Sep      Hotel           Two nights, conference          310.00   62.00    372.00
+
+Totals by category
+Travel:       132.00 net
+Software:      96.00 net
+Meals:        132.50 net
+Equipment:    210.00 net
+Office:        68.40 net
+Hotel:        310.00 net
+
+Total net:     948.90
+Total VAT:     172.98
+Total gross: 1,121.88
+
+Budget for the quarter: 1,300.00. Variance: 178.12 under budget.
+Receipts attached for every line above 25.00. Reimbursable amount to employees via payroll: 1,121.88. Cost centre code 4100, GL accounts 7400 (travel), 7500 (software), 7600 (meals).
+
+Approved by: ____________  Date: ____________

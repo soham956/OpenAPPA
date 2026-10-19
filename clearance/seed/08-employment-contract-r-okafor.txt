@@ -1,0 +1,36 @@
+SPECIMEN — synthetic test document, not real data
+
+EMPLOYMENT CONTRACT
+
+Employer: Northwind Delivery Partners Ltd (fictional)
+Employee: Rowan Okafor (fictional person)
+Employee address: 27 Make-Believe Close, Testford TF3 3CC
+Employee personal ID: SPC-4417-2290
+Start date: 1 November 2026
+
+This contract sets out the terms of employment between the employer and the employee under the laws of England and Wales.
+
+1. Role. The employee is employed as Operations Analyst and reports to the Head of Operations. The employer may reasonably vary duties.
+
+2. Place of work. The normal place of work is the Exampleton office, with hybrid working by agreement.
+
+3. Hours. Normal hours are 9:00 to 17:30, Monday to Friday, with a one-hour unpaid lunch break.
+
+4. Probation. The first six months are a probationary period, during which either party may terminate on one week's written notice.
+
+5. Notice. After probation, either party must give two months' written notice of termination.
+
+6. Confidentiality. The employee shall not disclose confidential information of the employer during or after employment.
+
+7. Intellectual property. Works created in the course of employment belong to the employer.
+
+8. Restrictive covenants. For six months after termination the employee shall not solicit the employer's clients with whom they had material dealings.
+
+9. Holiday. 25 days per year plus public holidays.
+
+10. Governing law. This contract is governed by the laws of England and Wales.
+
+Contact: hr@northwind-delivery.test
+
+Signed (employer): ______________________
+Signed (employee): ______________________

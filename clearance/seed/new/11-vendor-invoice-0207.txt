@@ -1,0 +1,38 @@
+SPECIMEN — synthetic test document, not real data
+
+INVOICE No. 0207
+
+From: Greenfield Office Supplies Ltd (fictional)
+12 Sample Street, Testford TF2 2BB
+VAT Reg: GB 000 0000 01 (fake)
+Email: billing@greenfield-supplies.test
+
+To: Orbit Harbour Systems Ltd
+9 Imaginary Quay, Sampleton SM2 0BB
+
+Invoice date: 14 October 2026
+Due date: 13 November 2026
+Purchase order: PO-5604
+
+Description                          Qty   Unit price   Amount
+A4 copier paper (box of 5 reams)      10      18.50      185.00
+Ballpoint pens (pack of 50)            4       9.75       39.00
+Desk organisers                        6      14.20       85.20
+Whiteboard markers (set)               8       6.40       51.20
+Delivery charge                        1      12.00       12.00
+
+Subtotal:                                               372.40
+VAT at 20%:                                              74.48
+Total due (GBP):                                        446.88
+
+Payment terms: net 30 days from invoice date. A 1.5% monthly charge applies to overdue balances.
+
+Pay by bank transfer to:
+Account name: Greenfield Office Supplies Ltd
+Sort code: 00-00-00 (fake)
+Account number: 00000000 (fake)
+Reference: INV-0207
+
+Please send remittance advice to billing@greenfield-supplies.test and quote the invoice number. Credit notes for returned goods must be requested within 14 days. Prior balance carried forward: 0.00.
+
+Thank you for your order.

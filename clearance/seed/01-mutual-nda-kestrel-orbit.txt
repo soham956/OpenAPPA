@@ -1,0 +1,28 @@
+SPECIMEN — synthetic test document, not real data
+
+MUTUAL NON-DISCLOSURE AGREEMENT
+
+Matter Ref: LM-2026-0417
+
+This Mutual Non-Disclosure Agreement (the "Agreement") is made on 3 March 2026 between Kestrel Analytics Ltd, a company incorporated in England and Wales whose registered office is at 14 Fictional Row, Testford TF1 0AA ("Kestrel"), and Orbit Harbour Systems Ltd, a company incorporated in England and Wales whose registered office is at 9 Imaginary Quay, Sampleton SM2 0BB ("Orbit").
+
+1. Purpose. The parties wish to explore a possible commercial collaboration (the "Purpose") and each may disclose Confidential Information to the other for that Purpose only.
+
+2. Definition. "Confidential Information" means all information, in any form, disclosed by one party (the "Discloser") to the other (the "Recipient") that is marked confidential or would reasonably be understood to be confidential, including technical data, pricing and business plans.
+
+3. Obligations. The Recipient shall (a) keep the Confidential Information strictly confidential; (b) use it solely for the Purpose; (c) disclose it only to employees and professional advisers who need to know and who are bound by equivalent duties; and (d) apply no less than reasonable care in protecting it.
+
+4. Exclusions. These obligations do not apply to information that is public other than through breach, was lawfully known to the Recipient beforehand, is independently developed, or is required to be disclosed by law or a court of competent jurisdiction.
+
+5. Term. This Agreement continues for two years from the date above. The obligations in clause 3 survive for five years after termination.
+
+6. Remedies. Each party acknowledges that damages alone may be an inadequate remedy for breach and that the Discloser may seek injunctive relief.
+
+7. No licence or warranty. Nothing in this Agreement grants any licence to intellectual property rights.
+
+8. Governing law and jurisdiction. This Agreement and any dispute arising from it are governed by the laws of England and Wales, and the courts of England and Wales have exclusive jurisdiction.
+
+Notices to counsel: legal@kestrel-analytics.test and legal@orbit-harbour.test.
+
+Signed for Kestrel Analytics Ltd: ______________________  (Director)
+Signed for Orbit Harbour Systems Ltd: ______________________  (Director)
