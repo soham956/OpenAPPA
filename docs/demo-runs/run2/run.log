@@ -1,0 +1,16 @@
+[14:04:16] step 0: reset
+  reset exit=0
+  archived logs/ to /Users/soham/Documents/Claude/Projects/hashirai/clearance-poc.nosync/clearance/runs/2026-10-19T14-04-18-398Z
+  cleared 5 state file(s)
+  Drive: trashed 11 file(s), uploaded 10 seed file(s) to the root
+  reset done: Drive root holds 01–10; Legal, Accounting and High Risk are empty.
+[14:04:47] step 1: npm start (sidecar + poller)
+  classify lines: 10 after 26 s
+[14:05:13] step 2: agent
+  agent exit=0
+[14:05:25] step 3: drop file 11 (no restart)
+  drop exit=0
+  classify lines: 11 (8 s after drop)
+[14:05:37] stop npm start
+  no appa runtime left
+[14:05:38] done:       22 decision lines,        1 outbox lines
