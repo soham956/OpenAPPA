@@ -1,0 +1,97 @@
+{
+  "exchanges": [
+    {
+      "request": {
+        "protocol": 1,
+        "adapter": "amp",
+        "event": "session_start",
+        "root_id": "malformed-agent-1"
+      },
+      "status": 200,
+      "reply": {
+        "decision": "ack",
+        "protocol": 1
+      }
+    },
+    {
+      "request": {
+        "protocol": 1,
+        "adapter": "amp",
+        "event": "prompt",
+        "root_id": "malformed-agent-1",
+        "text": "check the legal documents and send them to the legal team"
+      },
+      "status": 200,
+      "reply": {
+        "decision": "ack",
+        "protocol": 1
+      }
+    },
+    {
+      "request": {
+        "protocol": 1,
+        "adapter": "amp",
+        "event": "tool_call",
+        "root_id": "malformed-agent-1",
+        "tool": "mcp__clearance__memory_save",
+        "arguments": {
+          "scope": 5,
+          "value": "LM-2026-0417"
+        },
+        "call_id": "call-2b5714c5-a756-41b5-8e4d-09f7c8291956"
+      },
+      "status": 200,
+      "reply": {
+        "decision": "deny_call",
+        "feedback": "[appa] invalid call: invalid call: arguments do not satisfy the tool's registered schema: $.scope: expected a string",
+        "offers": [],
+        "protocol": 1,
+        "review": []
+      }
+    },
+    {
+      "request": {
+        "protocol": 1,
+        "adapter": "amp",
+        "event": "tool_call",
+        "root_id": "malformed-agent-1",
+        "tool": "mcp__clearance__memory_load",
+        "arguments": {
+          "scope": 5
+        },
+        "call_id": "call-15c3251d-71b7-47be-b648-a77afaf69fb7"
+      },
+      "status": 200,
+      "reply": {
+        "decision": "deny_call",
+        "feedback": "[appa] invalid call: invalid call: arguments do not satisfy the tool's registered schema: $.scope: expected a string",
+        "offers": [],
+        "protocol": 1,
+        "review": []
+      }
+    },
+    {
+      "request": {
+        "protocol": 1,
+        "adapter": "amp",
+        "event": "tool_call",
+        "root_id": "malformed-agent-1",
+        "tool": "mcp__clearance__send",
+        "arguments": {
+          "to": "counsel@outside-firm.test",
+          "subject": "Matter reference"
+        },
+        "call_id": "call-b7651fd6-abde-40d2-a070-e7613b39ba84"
+      },
+      "status": 200,
+      "reply": {
+        "decision": "deny_call",
+        "feedback": "[appa] invalid call: invalid call: arguments do not satisfy the tool's registered schema: $.to: expected an array",
+        "offers": [],
+        "protocol": 1,
+        "review": []
+      }
+    }
+  ],
+  "mcp": []
+}
