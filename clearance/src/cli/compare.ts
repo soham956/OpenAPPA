@@ -1,5 +1,4 @@
-// Stub entry point. Replaced by T8.2.
-console.error('not implemented: T8.2');
-process.exit(1);
+// `npm run compare <runA> <runB>` or `npm run compare -- --expected <run>`.
+import { runCompareCli } from '../log/compare';
 
-export {};
+process.exit(runCompareCli(process.argv.slice(2)));
