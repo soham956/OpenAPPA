@@ -2,19 +2,18 @@ SPECIMEN — synthetic test document, not real data
 
 SETTLEMENT AGREEMENT AND PAYMENT SCHEDULE
 Ref: Lumenbrew Coffee Co Ltd / Orbit Harbour Systems Ltd (both fictional)
+Cost centre: 4410 (Disputes).
 
 Part A: Settlement terms
 
 1. The parties settle all claims arising from the use of the sign ORBIT BREW in full and final settlement, without admission of liability.
-2. The Respondent releases and the Claimant releases each other from all claims, known or unknown, relating to the dispute.
-3. The Respondent shall cease use of the sign within sixty days and give a written undertaking not to use it again.
-4. Each party bears its own costs, save as stated below.
-5. The terms of this agreement are confidential, except to professional advisers and as required by law.
-6. This agreement is governed by the laws of England and Wales. Default in any instalment entitles the Claimant to apply to enforce the terms.
+2. The Respondent releases and the Claimant releases each other from all claims relating to the dispute.
+3. The Respondent shall cease use of the sign within sixty days.
+4. Each party bears its own costs. The terms are confidential and governed by the laws of England and Wales.
 
 Part B: Instalment ledger
 
-The Respondent shall pay the settlement sum of 12,000.00 in six equal monthly instalments of 2,000.00.
+Settlement sum receivable: 12,000.00, in six equal monthly instalments of 2,000.00. No VAT applies.
 
 No.  Due date        Amount     Paid on       Paid amount   Balance
 1    15 Nov 2026     2,000.00   14 Nov 2026   2,000.00      10,000.00
@@ -25,5 +24,10 @@ No.  Due date        Amount     Paid on       Paid amount   Balance
 6    15 Apr 2027     2,000.00   (pending)         0.00      10,000.00
 
 Total scheduled: 12,000.00. Total received to date: 2,000.00. Outstanding: 10,000.00.
+
+Journal on recognition: Dr Settlement debtor 12,000.00 / Cr Other income 12,000.00.
+Journal on receipt 1: Dr Bank 2,000.00 / Cr Settlement debtor 2,000.00.
+Legal costs to date (own side, not recoverable): 3,450.00, booked to 4410.
+
 Payments by bank transfer to client account 00000000, sort code 00-00-00 (both fake), reference SETTLE-ORB.
-Queries to accounts@brookside-vane.test.
+Questions on the terms go to legal; questions on the ledger to accounts@brookside-vane.test.
