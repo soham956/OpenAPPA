@@ -6,19 +6,15 @@
 import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { basename, join } from 'node:path';
 import type { Config, Paths } from '../config';
+import { createDriveClient } from '../drive/factory';
 import { type DriveClient, type DriveFile, FOLDER_KEYS } from '../drive/types';
 import { LOOPBACK } from '../sidecar/runtime';
 
 /** Creates the real DriveClient. The CLIs take one so tests can inject the fake. */
 export type DriveFactory = (cfg: Config) => Promise<DriveClient>;
 
-/**
- * Placeholder until the T3.2 factory (src/drive/factory.ts) is wired into the CLIs.
- * TODO(T3.2): replace with the real factory in src/cli/reset.ts and src/cli/drop.ts.
- */
-export const notWiredDriveFactory: DriveFactory = async () => {
-  throw new Error('Drive client factory is not wired yet (waiting on T3.2: src/drive/factory.ts).');
-};
+/** The live Google DriveClient, non-interactive (no browser consent; run `npm run drive:check` first). */
+export const liveDriveFactory: DriveFactory = (config) => createDriveClient({ config });
 
 export class ResetRefusedError extends Error {
   constructor(message: string) {

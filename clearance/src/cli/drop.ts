@@ -1,10 +1,9 @@
 // npm run drop: demo step 3 (upload seed/new/11-* to the Drive root).
 import { pathToFileURL } from 'node:url';
 import { type Config, getConfig } from '../config';
-import { type DriveFactory, drop, notWiredDriveFactory } from '../reset/reset';
+import { type DriveFactory, drop, liveDriveFactory } from '../reset/reset';
 
-// TODO(T3.2): replace with the real factory from src/drive/factory.ts.
-const createDrive: DriveFactory = notWiredDriveFactory;
+const createDrive: DriveFactory = liveDriveFactory;
 
 export interface DropCliDeps {
   config?: Config;

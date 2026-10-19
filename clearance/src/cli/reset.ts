@@ -1,10 +1,9 @@
 // npm run reset: demo step 0.
 import { pathToFileURL } from 'node:url';
 import { type Config, getConfig } from '../config';
-import { type DriveFactory, notWiredDriveFactory, reset, sidecarUrlFor } from '../reset/reset';
+import { type DriveFactory, liveDriveFactory, reset, sidecarUrlFor } from '../reset/reset';
 
-// TODO(T3.2): replace with the real factory from src/drive/factory.ts.
-const createDrive: DriveFactory = notWiredDriveFactory;
+const createDrive: DriveFactory = liveDriveFactory;
 
 export interface ResetCliDeps {
   config?: Config;
