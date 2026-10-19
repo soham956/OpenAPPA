@@ -1,0 +1,7 @@
+# Control: before any read, the session is public, so a send to counsel is allowed.
+mcp/clearance/send {
+  to: ["counsel@outside-firm.test"]
+  subject: "Matter reference"
+  body: "LM-2026-0417"
+}
+expect allow

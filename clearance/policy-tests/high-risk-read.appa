@@ -1,0 +1,13 @@
+# High Risk hold: a read in the High Risk folder is denied with no offer. Once a person moves
+# the file out in Drive, the guard resolves the new folder and the same file reads normally.
+mcp/clearance/drive_read {
+  fileId: "08-employment-contract-r-okafor"
+  folder: "high-risk"
+}
+expect deny
+
+mcp/clearance/drive_read {
+  fileId: "08-employment-contract-r-okafor"
+  folder: "legal"
+}
+expect allow

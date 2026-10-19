@@ -1,0 +1,20 @@
+# 2c, agent-1: after a Legal read, saving the matter reference to the legal-handoff scope is
+# allowed (its fixed audience is legal@), but saving it to any other scope is denied, because
+# other scopes require a public session.
+mcp/clearance/drive_read {
+  fileId: "01-mutual-nda-kestrel-orbit"
+  folder: "legal"
+}
+expect allow
+
+mcp/clearance/memory_save {
+  scope: "legal-handoff"
+  value: "LM-2026-0417"
+}
+expect allow
+
+mcp/clearance/memory_save {
+  scope: "notes"
+  value: "LM-2026-0417"
+}
+expect deny
