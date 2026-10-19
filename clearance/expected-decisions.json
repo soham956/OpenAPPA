@@ -1,0 +1,56 @@
+{
+  "_comment": "Expected result of one full demo run (docs/demo-script.md). Each expected line is a subset match: every field listed must equal the actual line; fields not listed (confidence, ts, fileId, offerId) are not checked. classify lines are matched after sorting by file; enforce and outbox lines in order.",
+  "classify": [
+    { "kind": "classify", "file": "01-mutual-nda-kestrel-orbit.txt", "label": "Legal", "rule": "jev", "jev": "Legal", "source": "fixture", "moved": "Legal" },
+    { "kind": "classify", "file": "02-master-services-agreement.txt", "label": "Legal", "rule": "jev", "jev": "Legal", "source": "fixture", "moved": "Legal" },
+    { "kind": "classify", "file": "03-cease-and-desist-letter.txt", "label": "Legal", "rule": "jev", "jev": "Legal", "source": "fixture", "moved": "Legal" },
+    { "kind": "classify", "file": "04-board-resolution-oct.txt", "label": "Legal", "rule": "jev", "jev": "Legal", "source": "fixture", "moved": "Legal" },
+    { "kind": "classify", "file": "05-invoice-0193.txt", "label": "Accounting", "rule": "jev", "jev": "Accounting", "source": "fixture", "moved": "Accounting" },
+    { "kind": "classify", "file": "06-q3-expense-report.txt", "label": "Accounting", "rule": "jev", "jev": "Accounting", "source": "fixture", "moved": "Accounting" },
+    { "kind": "classify", "file": "07-trial-balance-sept.txt", "label": "Accounting", "rule": "jev", "jev": "Accounting", "source": "fixture", "moved": "Accounting" },
+    { "kind": "classify", "file": "08-employment-contract-r-okafor.txt", "label": "High Risk", "rule": "specimen-id", "moved": "High Risk" },
+    { "kind": "classify", "file": "09-payslip-sept-m-lindqvist.txt", "label": "High Risk", "rule": "specimen-id", "moved": "High Risk" },
+    { "kind": "classify", "file": "10-settlement-payment-schedule.txt", "label": "High Risk", "rule": "low-confidence", "jev": "Legal", "source": "fixture", "moved": "High Risk" },
+    { "kind": "classify", "file": "11-vendor-invoice-0207.txt", "label": "Accounting", "rule": "jev", "jev": "Accounting", "source": "fixture", "moved": "Accounting" }
+  ],
+  "enforce": [
+    { "kind": "enforce", "step": "read", "session": "agent-1", "tool": "drive_read", "file": "01-mutual-nda-kestrel-orbit.txt", "decision": "allow" },
+    { "kind": "enforce", "step": "read", "session": "agent-1", "tool": "drive_read", "file": "02-master-services-agreement.txt", "decision": "allow" },
+    { "kind": "enforce", "step": "read", "session": "agent-1", "tool": "drive_read", "file": "03-cease-and-desist-letter.txt", "decision": "allow" },
+    { "kind": "enforce", "step": "read", "session": "agent-1", "tool": "drive_read", "file": "04-board-resolution-oct.txt", "decision": "allow" },
+    {
+      "kind": "enforce", "step": "2a", "session": "agent-1", "tool": "send",
+      "to": ["legal@hashirai-poc.test", "counsel@outside-firm.test"],
+      "decision": "deny",
+      "reason": "Blocked: Legal content may only go to legal@hashirai-poc.test. counsel@outside-firm.test is outside that list."
+    },
+    {
+      "kind": "enforce", "step": "2b", "session": "agent-1", "tool": "send",
+      "to": ["counsel@outside-firm.test"],
+      "decision": "deny",
+      "reason": "Blocked: Legal content may only go to legal@hashirai-poc.test. counsel@outside-firm.test is outside that list."
+    },
+    { "kind": "enforce", "step": "2c-save", "session": "agent-1", "tool": "memory_save", "scope": "legal-handoff", "decision": "allow" },
+    { "kind": "enforce", "step": "2c-load", "session": "agent-2", "tool": "memory_load", "scope": "legal-handoff", "decision": "allow" },
+    {
+      "kind": "enforce", "step": "2c", "session": "agent-2", "tool": "send",
+      "to": ["counsel@outside-firm.test"],
+      "decision": "deny",
+      "reason": "Blocked: this memory entry came from Legal content, which may only go to legal@hashirai-poc.test. counsel@outside-firm.test is outside that list."
+    },
+    { "kind": "enforce", "step": "2d", "session": "agent-1", "tool": "send", "to": ["legal@hashirai-poc.test"], "decision": "allow" }
+  ],
+  "outbox": [
+    {
+      "to": ["legal@hashirai-poc.test"],
+      "subject": "Legal documents for review",
+      "attachments": [
+        "01-mutual-nda-kestrel-orbit.txt",
+        "02-master-services-agreement.txt",
+        "03-cease-and-desist-letter.txt",
+        "04-board-resolution-oct.txt"
+      ],
+      "session": "agent-1"
+    }
+  ]
+}
