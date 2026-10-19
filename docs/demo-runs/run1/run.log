@@ -1,0 +1,16 @@
+[14:02:09] step 0: reset
+  reset exit=0
+  logs/ was empty; nothing to archive
+  cleared 0 state file(s)
+  Drive: trashed 10 file(s), uploaded 10 seed file(s) to the root
+  reset done: Drive root holds 01–10; Legal, Accounting and High Risk are empty.
+[14:02:43] step 1: npm start (sidecar + poller)
+  classify lines: 10 after 33 s
+[14:03:16] step 2: agent
+  agent exit=0
+[14:03:28] step 3: drop file 11 (no restart)
+  drop exit=0
+  classify lines: 11 (9 s after drop)
+[14:03:40] stop npm start
+  no appa runtime left
+[14:03:41] done:       22 decision lines,        1 outbox lines

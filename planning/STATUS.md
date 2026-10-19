@@ -1,6 +1,6 @@
 # Status: Hashirai Clearance POC
 
-_Last updated 2026-10-19_
+_Last updated 2026-10-19: **POC done.** All 21 tasks merged, Phase 4 accepted._
 
 ## Done
 - Brief read (`ORCHESTRATOR.md`). Phase 0 questions sent.
@@ -118,12 +118,25 @@ _Last updated 2026-10-19_
 - Reset takes 23–45 s on Workspace Drive, so do it before a run, not live. Reset trashes files (soft), so Soham may want to empty the Drive trash after the demo.
 - Stories done: S1–S6, S9, S10, S11. S7, S8 and S12 wait for T12.2 and the demo runs.
 
+## Wave 5 and Phase 4: done 2026-10-19
+- T12.2 end-to-end step 2 test (Rowan, #29) runs in CI against the real `appa`. CI: 242 tests across 23 files.
+- **Phase 4 acceptance:** two full runs of `docs/demo-script.md` against the real Workspace Drive, each from a clean state. `compare run1 run2` → **identical**, and both runs → **matches expected**. Logs are in `docs/demo-runs/` (Drive IDs stripped; the repo is public). Drive was left in the step 0 state.
+- **All 12 stories done.** Agent runtime totalled 89.4 min (4.5 SP), against 34.85 adjusted task SP (13%) and 24.45 adjusted story SP (18%). Rework: T2.1, T5.1 and T12.1 each had one rejected attempt.
+- **Calibration, implied multiplier (raw ÷ baseline):**
+  - Opus medium 0.13 (11 tasks)
+  - Opus high 0.12 (3 tasks)
+  - Sonnet medium 0.11 (6 tasks)
+  - Opus low 0.19 (1 task, noisy)
+
+  1 SP = 20 min was about 7× too generous for well-specified tasks. High effort wasn't measurably slower than medium.
+
 ## Next
-1. Wave 5: Rowan T12.2, the CI end-to-end test of step 2. Then the orchestrator accepts it.
-2. Phase 4: run `docs/demo-script.md` twice from a clean Drive, then `compare` must print `identical`. Then the final report to Soham.
+1. Soham: choose the video. Either a recording of a real run (terminal plus Drive in the browser), or an explainer reel (`motion-reel`).
+2. The code-quality review session needs Soham to click **Trust repository** in that session before it can start.
+3. Later: see the Later list in `planning/stories.md` and the workbook's Summary tab.
 
 ## Blockers
-- None. Waiting on Soham's go-ahead at the checkpoint.
+- None.
 
 ## Environment note
 Soham may continue from the Claude Code desktop app instead of the terminal. `gh` is at `~/.local/bin/gh`, which may not be on that app's PATH, so call it by its full path.
