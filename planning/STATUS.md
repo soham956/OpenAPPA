@@ -71,7 +71,7 @@ _Last updated 2026-10-19_
 | T1.1 scaffold | Rowan | #4 | 5.8 min | Accepted first time |
 | T2.1 seed files | Mika | #2 | 2.3 + 0.5 min | Attempt 1 rejected (strict-tsc error, seen only in the combined check); accepted after rework |
 | T9.1 policy | Quinn | #3 | 5.6 min | Accepted. Primary recipient approach works (no fallback) |
-- Stories S2 and S9 are done. S1 waits on T1.2.
+- Stories S1, S2 and S9 are done.
 - **Estimate signal:** wave 1 ran at about 8–20% of its adjusted estimate. That's one wave, so no recalibration yet; see the Agents and Calibration tabs.
 - Review practice: before merging, the orchestrator applies a wave's PRs together in a scratch worktree and runs everything. That's how T2.1's error was caught.
 - Merging: Soham allowed `gh pr merge -R soham956/OpenAPPA --rebase <n>` in `.claude/settings.local.json` (git-ignored; `--admin` and `--auto` are denied).
@@ -80,7 +80,7 @@ _Last updated 2026-10-19_
   - `drive_list` logs as step `read`.
   - Quinn's `clearance/policy/README.md` holds the tool argument schemas and the exact deny feedback.
 
-## Wave 2: accepted 2026-10-19; merging after T1.2 (CI)
+## Wave 2: merged 2026-10-19 (CI-gated; main green)
 | Task | Agent | PR | Runtime | Result |
 |---|---|---|---|---|
 | T8.1 decision log | Mika | #6 | 0.9 min | Accepted |
@@ -88,15 +88,15 @@ _Last updated 2026-10-19_
 | T5.1 classifier core | Ellis | #8 | 2.9 min | Accepted. One commit doesn't typecheck alone; the tip is fine |
 | T3.1 Drive client | Sasha | #9 | 4.5 min | Accepted. Trash is soft; nothing outside the tree is touched |
 | T10.1 sidecar wire and remedy | Quinn | #10 | 6.3 min | Accepted. The live remedy flow works against the real `appa` |
-| T1.2 CI | Rowan | (pending) | - | Was blocked until Soham added the gh `workflow` scope (2026-10-19). Now resumed |
+| T1.2 CI | Rowan | #11 | 1.7 + 6.4 min (paused 9.7 min while blocked) | Accepted. Cold run 4m31s, cached run 19s. `clearance-ci` is now a required check on `main` |
 - Combined wave 2 check (#6–#10 together): vitest 128/128 including the live APPA tests, typecheck ok, replay 8/8.
 - For T10.2: the live deny feedback differs from replay (host tool names, no "Alternative" block). Match on Quinn's recorded fixtures in `clearance/test/fixtures/runtime/`.
 
 ## Next
-1. Merge T1.2 when its CI is green, then make its check required. Then merge #6–#10 in order.
-2. Wave 3:
+1. Wave 3 is running (dispatched 13:30Z):
    - Sasha T3.2, Rowan T4.1, Ellis T5.2, Jules T7.1 (new)
    - Mika T8.2, Quinn T10.2, Remy T11.2
+2. Wave 4: Rowan T12.1, Remy T7.2, Noor T6.1 (live Jev), Sasha T3.3 (live Drive, with Soham's consent click).
 3. Soham: one browser consent click during T3.3 (wave 4).
 
 ## Blockers
