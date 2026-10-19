@@ -100,7 +100,7 @@ Accept (S3, S4):
 
 **T5.1** · S5 · 2 SP · Opus 5.5 medium · `feat/T5.1-classifier-core`
 Task: ID rule, threshold decision and fixture store (replay, or record on a miss) keyed by sha256(content).
-Owns: `clearance/src/classifier/{types,specimen,decide,fixture-store}.ts`, `clearance/test/classifier.test.ts`, `clearance/test/fixtures/classifications.sample.json`.
+Owns: `clearance/src/classifier/{types,specimen,decide,fixture-store}.ts`, `clearance/test/classifier.test.ts`, `clearance/test/fixtures/classifications.sample.json` (removed in the T5.1 rework, PR #23; the tests build their fixture from the seeds).
 Deps: T1.1, T2.1.
 Accept (S5):
 - The ID rule runs first and skips Jev (08 and 09 → High Risk, `specimen-id`).
