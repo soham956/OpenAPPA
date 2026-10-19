@@ -21,7 +21,7 @@ describe('config', () => {
   });
 
   it('loads .env from the repo root and resolves secrets/ there', () => {
-    // No `TYPESAFE_API_KEY=<value>` literal here: CI's secret scan (T1.2) flags it.
+    // No non-empty TypeSafe key assignment literal here: CI's secret scan (T1.2) flags it.
     writeEnv('GDRIVE_ROOT_FOLDER_ID=folder-synthetic-123\nCLASSIFIER_MODE=live\n');
     const cfg = loadConfig({ repoRoot: root, env: {} });
     expect(cfg.gdriveRootFolderId).toBe('folder-synthetic-123');
