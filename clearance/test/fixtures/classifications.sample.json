@@ -1,0 +1,47 @@
+{
+  "117a3d1a28d2b9257361f4bf6b3824c98525d7b758cf7a99f5c7de6ab0423119": {
+    "label": "Legal",
+    "confidence": 0.95,
+    "note": "01-mutual-nda-kestrel-orbit.txt"
+  },
+  "1e74a07627dabb97388ec68c7c858ed0cdf848096d62ae034477eac5226ecc3a": {
+    "label": "Accounting",
+    "confidence": 0.94,
+    "note": "06-q3-expense-report.txt"
+  },
+  "7bc4b3ab975192ba7b5bd5549583e8e00b435e59915d2330a503062313bedb38": {
+    "label": "Accounting",
+    "confidence": 0.96,
+    "note": "07-trial-balance-sept.txt"
+  },
+  "895737f54b976732ba795dad7048839b954222717d8cf0481e52505dc733ce3c": {
+    "label": "Accounting",
+    "confidence": 0.97,
+    "note": "05-invoice-0193.txt"
+  },
+  "a634058e136a60f14e2c463cfdc9404ab205e9209821726aab518efb07fc7f75": {
+    "label": "Legal",
+    "confidence": 0.91,
+    "note": "03-cease-and-desist-letter.txt"
+  },
+  "b9ff6a97787af3d5cd80dfabeb990cd8110cf2781e63faff07f4b6105ac2c7ab": {
+    "label": "Legal",
+    "confidence": 0.84,
+    "note": "04-board-resolution-oct.txt"
+  },
+  "c797e63a9a42882b20725ea3ab651301f19c108e00683a5f130093cdb27d767e": {
+    "label": "Legal",
+    "confidence": 0.93,
+    "note": "02-master-services-agreement.txt"
+  },
+  "d62bf2def897dc8b409ba3c393b4884180a130dda85227e4cb9257afb95ba0e2": {
+    "label": "Accounting",
+    "confidence": 0.96,
+    "note": "11-vendor-invoice-0207.txt"
+  },
+  "fdf88a22c23f3745043be8a7217fe80994e135e3e69a03d5a8e5a95b2f51269d": {
+    "label": "Legal",
+    "confidence": 0.58,
+    "note": "10-settlement-payment-schedule.txt"
+  }
+}
