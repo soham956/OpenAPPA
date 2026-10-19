@@ -1,0 +1,13 @@
+# 2c, agent-2: a fresh session with no Drive reads loads the legal-handoff scope (allowed
+# once the narrowing to legal@ is accepted), then sending to counsel is denied.
+mcp/clearance/memory_load {
+  scope: "legal-handoff"
+}
+expect allow
+
+mcp/clearance/send {
+  to: ["counsel@outside-firm.test"]
+  subject: "Matter reference"
+  body: "LM-2026-0417"
+}
+expect deny

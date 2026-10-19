@@ -1,0 +1,13 @@
+# A file still in the Drive root (not yet classified) matches no drive_read contract, so the
+# read is refused. Any other folder value is refused the same way.
+mcp/clearance/drive_read {
+  fileId: "11-vendor-invoice-0207"
+  folder: "root"
+}
+expect deny
+
+mcp/clearance/drive_read {
+  fileId: "11-vendor-invoice-0207"
+  folder: "other"
+}
+expect deny

@@ -1,0 +1,14 @@
+# 2b: after a Legal read, sending only the matter reference to counsel is denied too. The
+# label is per trajectory, so any external send after a Legal read is refused.
+mcp/clearance/drive_read {
+  fileId: "01-mutual-nda-kestrel-orbit"
+  folder: "legal"
+}
+expect allow
+
+mcp/clearance/send {
+  to: ["counsel@outside-firm.test"]
+  subject: "Matter reference"
+  body: "LM-2026-0417"
+}
+expect deny
