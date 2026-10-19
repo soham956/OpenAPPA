@@ -1,0 +1,107 @@
+# Hashirai Clearance POC: the only workflow in this fork.
+# Unit tests, typecheck, policy checks and a secret scan for clearance/.
+name: clearance-ci
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: clearance-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  RUST_VERSION: "1.96"
+
+jobs:
+  clearance:
+    name: clearance-ci
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 1
+
+      # Secret values only, never key names. planning/ and docs/ describe this
+      # rule, so they are excluded. The [x] brackets stop this file matching itself.
+      - name: Secret scan
+        run: |
+          if git grep -nE 'GOCSPX[-]|"refresh_token"[[:space:]]*:[[:space:]]*"1[/]/|TYPESAFE_API_KEY[=][[:space:]]*["'\'']?[A-Za-z0-9]' \
+               -- . ':!planning/' ':!docs/'; then
+            echo "::error::Tracked file holds a secret value (see matches above)."
+            exit 1
+          fi
+          echo "No secret values found."
+
+      - name: Setup Node 22
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: clearance/package-lock.json
+
+      # Cache the appa binary, not target/: appa-runtime/build.rs embeds git
+      # HEAD, so a cached target/ still rebuilds the crate on every commit.
+      - name: Set appa path
+        run: echo "APPA_BIN=$HOME/.appa-bin/appa" >> "$GITHUB_ENV"
+
+      - name: Restore appa binary
+        id: appa-cache
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.appa-bin
+          key: appa-${{ runner.os }}-rust${{ env.RUST_VERSION }}-${{ hashFiles('Cargo.lock', 'Cargo.toml', 'appa-*/**', 'marketplace/batteries/**', 'mise.toml') }}
+
+      - name: Install Rust ${{ env.RUST_VERSION }}
+        if: steps.appa-cache.outputs.cache-hit != 'true'
+        run: rustup toolchain install "$RUST_VERSION" --profile minimal --no-self-update
+
+      - name: Build appa
+        if: steps.appa-cache.outputs.cache-hit != 'true'
+        env:
+          CARGO_TERM_COLOR: always
+        run: |
+          cargo +"$RUST_VERSION" build --locked -p appa --release
+          mkdir -p "$(dirname "$APPA_BIN")"
+          cp target/release/appa "$APPA_BIN"
+
+      # Saved right after the build so a later test failure keeps the binary.
+      - name: Save appa binary
+        if: steps.appa-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.appa-bin
+          key: ${{ steps.appa-cache.outputs.cache-primary-key }}
+
+      - name: appa version
+        run: |
+          echo "appa cache hit: ${{ steps.appa-cache.outputs.cache-hit == 'true' }}"
+          "$APPA_BIN" --version
+
+      - name: npm ci
+        working-directory: clearance
+        run: npm ci
+
+      - name: Typecheck
+        working-directory: clearance
+        run: npm run typecheck
+
+      - name: Unit tests
+        working-directory: clearance
+        env:
+          CLEARANCE_REQUIRE_APPA: "1"
+        run: npm test
+
+      # rcpt-audience.mjs is an audience source run with `node`, already on PATH.
+      - name: Policy describe --check
+        run: '"$APPA_BIN" describe --config clearance/appa.toml --check'
+
+      - name: Policy replay
+        run: '"$APPA_BIN" replay --config clearance/appa.toml clearance/policy-tests/'
