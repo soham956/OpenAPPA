@@ -179,7 +179,16 @@ export class FakeDriveClient implements DriveClient {
 export interface StubCall {
   method: 'list' | 'get' | 'create' | 'update' | 'export';
   params: Record<string, unknown>;
+  /** Per-request options (timeout, signal, responseType). */
+  options?: { timeout?: number; signal?: AbortSignal; responseType?: string };
 }
+
+/**
+ * What an intercepted call does: `hang` never settles (a stuck connection),
+ * `apply-then-hang` makes the change and then never answers (a timed-out
+ * request that landed server-side), `error` rejects with it.
+ */
+export type StubBehavior = 'hang' | 'apply-then-hang' | { error: unknown } | undefined;
 
 interface StubItem {
   id: string;
@@ -204,7 +213,25 @@ export class FakeDriveFilesApi {
   readonly calls: StubCall[] = [];
   /** Page size the stub returns, to exercise pagination. */
   pageSize = 2;
+  /** Test hook: change how a call behaves (see StubBehavior). */
+  intercept?: (call: StubCall) => StubBehavior;
   private seq = 0;
+
+  private run<T>(call: StubCall, impl: () => T): Promise<T> {
+    this.calls.push(call);
+    const b = this.intercept?.(call);
+    if (b === 'hang') return new Promise<T>(() => undefined);
+    if (b === 'apply-then-hang') {
+      impl();
+      return new Promise<T>(() => undefined);
+    }
+    if (b) return Promise.reject(b.error);
+    try {
+      return Promise.resolve(impl());
+    } catch (err) {
+      return Promise.reject(err);
+    }
+  }
 
   add(fields: Partial<StubItem> & { name: string; parents: string[] }): string {
     const id = fields.id ?? `g-${++this.seq}`;
@@ -212,59 +239,64 @@ export class FakeDriveFilesApi {
     return id;
   }
 
-  async list(params: { q?: string; pageToken?: string }) {
-    this.calls.push({ method: 'list', params });
-    const preds = (params.q ?? '').split(' and ').map(parseClause);
-    const all = [...this.items.values()].filter((i) => preds.every((p) => p(i)));
-    const start = params.pageToken ? Number(params.pageToken) : 0;
-    const page = all.slice(start, start + this.pageSize);
-    const next = start + this.pageSize < all.length ? String(start + this.pageSize) : undefined;
-    return { data: { files: page.map(stubMeta), ...(next ? { nextPageToken: next } : {}) } };
+  list(params: { q?: string; pageToken?: string }, options?: StubCall['options']) {
+    return this.run({ method: 'list', params, ...(options ? { options } : {}) }, () => {
+      const preds = (params.q ?? '').split(' and ').map(parseClause);
+      const all = [...this.items.values()].filter((i) => preds.every((p) => p(i)));
+      const start = params.pageToken ? Number(params.pageToken) : 0;
+      const page = all.slice(start, start + this.pageSize);
+      const next = start + this.pageSize < all.length ? String(start + this.pageSize) : undefined;
+      return { data: { files: page.map(stubMeta), ...(next ? { nextPageToken: next } : {}) } };
+    });
   }
 
-  async get(params: { fileId?: string; alt?: string }) {
-    this.calls.push({ method: 'get', params });
-    const item = this.items.get(params.fileId ?? '');
-    if (!item) throw notFound(params.fileId ?? '');
-    return { data: params.alt === 'media' ? item.content : stubMeta(item) };
+  get(params: { fileId?: string; alt?: string }, options?: StubCall['options']) {
+    return this.run({ method: 'get', params, ...(options ? { options } : {}) }, () => {
+      const item = this.items.get(params.fileId ?? '');
+      if (!item) throw notFound(params.fileId ?? '');
+      return { data: params.alt === 'media' ? item.content : stubMeta(item) };
+    });
   }
 
-  async export(params: { fileId?: string }) {
-    this.calls.push({ method: 'export', params });
-    const item = this.items.get(params.fileId ?? '');
-    if (!item) throw notFound(params.fileId ?? '');
-    return { data: item.content };
+  export(params: { fileId?: string }, options?: StubCall['options']) {
+    return this.run({ method: 'export', params, ...(options ? { options } : {}) }, () => {
+      const item = this.items.get(params.fileId ?? '');
+      if (!item) throw notFound(params.fileId ?? '');
+      return { data: item.content };
+    });
   }
 
-  async create(params: {
+  create(params: {
     requestBody?: { name?: string | null; mimeType?: string | null; parents?: string[] | null };
     media?: { body?: unknown };
-  }) {
-    this.calls.push({ method: 'create', params });
-    const body = params.requestBody ?? {};
-    const id = this.add({
-      name: body.name ?? '',
-      mimeType: body.mimeType ?? 'text/plain',
-      parents: body.parents ?? [],
-      content: params.media?.body === undefined ? '' : String(params.media.body),
+  }, options?: StubCall['options']) {
+    return this.run({ method: 'create', params, ...(options ? { options } : {}) }, () => {
+      const body = params.requestBody ?? {};
+      const id = this.add({
+        name: body.name ?? '',
+        mimeType: body.mimeType ?? 'text/plain',
+        parents: body.parents ?? [],
+        content: params.media?.body === undefined ? '' : String(params.media.body),
     });
     return { data: stubMeta(this.items.get(id)!) };
+    });
   }
 
-  async update(params: {
+  update(params: {
     fileId?: string;
     addParents?: string;
     removeParents?: string;
     requestBody?: { trashed?: boolean | null };
-  }) {
-    this.calls.push({ method: 'update', params });
-    const item = this.items.get(params.fileId ?? '');
-    if (!item) throw notFound(params.fileId ?? '');
-    const remove = (params.removeParents ?? '').split(',').filter(Boolean);
-    item.parents = item.parents.filter((p) => !remove.includes(p));
-    for (const p of (params.addParents ?? '').split(',').filter(Boolean)) if (!item.parents.includes(p)) item.parents.push(p);
-    if (params.requestBody?.trashed != null) item.trashed = params.requestBody.trashed;
-    return { data: stubMeta(item) };
+  }, options?: StubCall['options']) {
+    return this.run({ method: 'update', params, ...(options ? { options } : {}) }, () => {
+      const item = this.items.get(params.fileId ?? '');
+      if (!item) throw notFound(params.fileId ?? '');
+      const remove = (params.removeParents ?? '').split(',').filter(Boolean);
+      item.parents = item.parents.filter((p) => !remove.includes(p));
+      for (const p of (params.addParents ?? '').split(',').filter(Boolean)) if (!item.parents.includes(p)) item.parents.push(p);
+      if (params.requestBody?.trashed != null) item.trashed = params.requestBody.trashed;
+      return { data: stubMeta(item) };
+    });
   }
 }
 

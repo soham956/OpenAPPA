@@ -1,9 +1,20 @@
 // GoogleDriveClient against a stubbed drive_v3 files API: no network. These
 // check the request shapes (scoping, supportsAllDrives, pagination); the
 // behaviour shared with the fake is in drive-contract.test.ts.
-import { describe, expect, it } from 'vitest';
-import { FakeDriveFilesApi, type StubCall } from '../src/drive/fake';
-import { GoogleDriveClient, q } from '../src/drive/google';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { google } from 'googleapis';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { loadConfig } from '../src/config';
+import { FakeDriveFilesApi, type StubBehavior, type StubCall } from '../src/drive/fake';
+import { createDriveClient } from '../src/drive/factory';
+import {
+  DEFAULT_TIMEOUT_MS,
+  DriveRequestError,
+  GoogleDriveClient,
+  isRetryable,
+  q,
+} from '../src/drive/google';
 import { DriveScopeError, FOLDER_MIME } from '../src/drive/types';
 
 const ROOT = 'root-folder-id';
@@ -184,5 +195,174 @@ describe('GoogleDriveClient (stubbed drive_v3)', () => {
 
   it('requires a root id', () => {
     expect(() => new GoogleDriveClient({ files: new FakeDriveFilesApi() }, '')).toThrow(/root folder id/);
+  });
+});
+
+describe('GoogleDriveClient timeouts and retries (fake timers)', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  /** Apply `behaviors` in order to calls matching `match`; later calls behave normally. */
+  function script(files: FakeDriveFilesApi, match: (c: StubCall) => boolean, behaviors: StubBehavior[]) {
+    const queue = [...behaviors];
+    files.intercept = (c) => (match(c) ? queue.shift() : undefined);
+  }
+  const isMedia = (c: StubCall) => c.method === 'get' && c.params.alt === 'media';
+  const isRootList = (c: StubCall) =>
+    c.method === 'list' && String(c.params.q).startsWith(`'${ROOT}' in parents`) && String(c.params.q).includes('!=');
+
+  it('passes the timeout and an abort signal on every request', async () => {
+    const { files, client } = setup();
+    await exercise(files, client);
+    for (const c of files.calls) {
+      expect(c.options?.timeout, c.method).toBe(DEFAULT_TIMEOUT_MS);
+      expect(c.options?.signal, c.method).toBeInstanceOf(AbortSignal);
+    }
+    expect(DEFAULT_TIMEOUT_MS).toBe(20_000);
+  });
+
+  it('read rejects after the timeout, naming the operation and file id', async () => {
+    vi.useFakeTimers();
+    const { files, client } = setup();
+    const id = files.add({ name: '10-settlement.txt', content: 'x', parents: [ROOT] });
+    files.intercept = (c) => (isMedia(c) ? 'hang' : undefined);
+    let settled = false;
+    const p = client.read(id).finally(() => {
+      settled = true;
+    });
+    const assertion = expect(p).rejects.toThrow(
+      new RegExp(`Drive read\\(${id}\\) failed after 3 attempt\\(s\\): Drive read\\(${id}\\) timed out after 20000 ms`),
+    );
+    // 3 attempts of 20 s with 0.5 s and 1 s backoff between them.
+    await vi.advanceTimersByTimeAsync(61_499);
+    expect(settled).toBe(false);
+    await vi.advanceTimersByTimeAsync(1);
+    await assertion;
+    await expect(p).rejects.toBeInstanceOf(DriveRequestError);
+    const media = files.calls.filter(isMedia);
+    expect(media).toHaveLength(3);
+    expect(media.every((c) => c.options?.signal?.aborted)).toBe(true);
+  });
+
+  it('read with retries: 0 rejects at exactly the configured timeout', async () => {
+    vi.useFakeTimers();
+    const files = new FakeDriveFilesApi();
+    const client = new GoogleDriveClient({ files }, ROOT, { timeoutMs: 5_000, retries: 0 });
+    const id = files.add({ name: 'a.txt', parents: [ROOT] });
+    files.intercept = (c) => (isMedia(c) ? 'hang' : undefined);
+    const assertion = expect(client.read(id)).rejects.toThrow(/timed out after 5000 ms/);
+    await vi.advanceTimersByTimeAsync(5_000);
+    await assertion;
+    expect(files.calls.filter(isMedia)).toHaveLength(1);
+  });
+
+  it('list retries a hang and a 503, then succeeds', async () => {
+    vi.useFakeTimers();
+    const { files, client } = setup();
+    files.add({ name: '10-settlement.txt', parents: [ROOT] });
+    script(files, isRootList, ['hang', { error: Object.assign(new Error('backend'), { code: 503 }) }]);
+    const p = client.listRoot();
+    await vi.advanceTimersByTimeAsync(20_000 + 500 + 1_000);
+    expect((await p).map((f) => f.name)).toEqual(['10-settlement.txt']);
+    expect(files.calls.filter(isRootList)).toHaveLength(3);
+  });
+
+  it('list does not retry a 403', async () => {
+    const { files, client } = setup();
+    script(files, isRootList, [{ error: Object.assign(new Error('forbidden'), { code: 403 }) }]);
+    await expect(client.listRoot()).rejects.toThrow('forbidden');
+    expect(files.calls.filter(isRootList)).toHaveLength(1);
+  });
+
+  it('a move that timed out but landed is treated as success, without a second update', async () => {
+    vi.useFakeTimers();
+    const { files, client } = setup();
+    const subs = await client.ensureSubfolders();
+    const f = await client.upload('10-settlement.txt', 'x');
+    script(files, (c) => c.method === 'update', ['apply-then-hang']);
+    const p = client.move(f.id, 'high-risk');
+    await vi.advanceTimersByTimeAsync(20_000 + 500);
+    expect(await p).toEqual({ id: f.id, name: '10-settlement.txt', folder: 'high-risk' });
+    expect(files.calls.filter((c) => c.method === 'update')).toHaveLength(1);
+    expect(files.items.get(f.id)!.parents).toEqual([subs['high-risk']]);
+  });
+
+  it('a move that timed out and did not land is retried after re-reading the parents', async () => {
+    vi.useFakeTimers();
+    const { files, client } = setup();
+    const subs = await client.ensureSubfolders();
+    const f = await client.upload('05-invoice.txt', 'x');
+    script(files, (c) => c.method === 'update', ['hang']);
+    const p = client.move(f.id, 'accounting');
+    await vi.advanceTimersByTimeAsync(20_000 + 500);
+    expect((await p).folder).toBe('accounting');
+    const updates = files.calls.filter((c) => c.method === 'update');
+    expect(updates).toHaveLength(2);
+    expect(updates[1]!.params).toMatchObject({ addParents: subs.accounting, removeParents: ROOT });
+    expect(files.items.get(f.id)!.parents).toEqual([subs.accounting]);
+  });
+
+  it('a move that keeps timing out rejects naming move and the file id', async () => {
+    vi.useFakeTimers();
+    const { files, client } = setup();
+    await client.ensureSubfolders();
+    const f = await client.upload('10.txt', 'x');
+    files.intercept = (c) => (c.method === 'update' ? 'hang' : undefined);
+    const assertion = expect(client.move(f.id, 'legal')).rejects.toThrow(
+      new RegExp(`Drive move\\(${f.id}\\) failed after 3 attempt\\(s\\)`),
+    );
+    await vi.advanceTimersByTimeAsync(61_500);
+    await assertion;
+    expect(await client.folderOf(f.id)).toBe('root');
+  });
+
+  it('upload is never retried', async () => {
+    vi.useFakeTimers();
+    const { files, client } = setup();
+    files.intercept = (c) => (c.method === 'create' ? 'hang' : undefined);
+    const assertion = expect(client.upload('11-vendor-invoice-0207.txt', 'x')).rejects.toThrow(
+      /Drive upload\(11-vendor-invoice-0207\.txt\) failed after 1 attempt\(s\): .*timed out after 20000 ms/,
+    );
+    await vi.advanceTimersByTimeAsync(20_000);
+    await assertion;
+    await vi.advanceTimersByTimeAsync(60_000);
+    expect(files.calls.filter((c) => c.method === 'create')).toHaveLength(1);
+  });
+
+  it('a trash that timed out but landed is treated as success', async () => {
+    vi.useFakeTimers();
+    const { files, client } = setup();
+    const f = await client.upload('a.txt', 'x');
+    script(files, (c) => c.method === 'update', ['apply-then-hang']);
+    const p = client.trash(f.id);
+    await vi.advanceTimersByTimeAsync(20_500);
+    await p;
+    expect(files.calls.filter((c) => c.method === 'update')).toHaveLength(1);
+    expect(files.items.get(f.id)!.trashed).toBe(true);
+  });
+
+  it('classifies retryable errors', () => {
+    const err = (props: object) => Object.assign(new Error('x'), props);
+    expect(isRetryable(err({ code: 429 }))).toBe(true);
+    expect(isRetryable(err({ status: 500 }))).toBe(true);
+    expect(isRetryable(err({ response: { status: 503 } }))).toBe(true);
+    expect(isRetryable(err({ code: 'ECONNRESET' }))).toBe(true);
+    expect(isRetryable(err({ cause: { code: 'ETIMEDOUT' } }))).toBe(true);
+    expect(isRetryable(err({ code: 404 }))).toBe(false);
+    expect(isRetryable(err({ code: 403 }))).toBe(false);
+    expect(isRetryable(new Error('plain'))).toBe(false);
+  });
+
+  it('the factory sets the timeout (default 20 s, configurable)', async () => {
+    const config = loadConfig({
+      repoRoot: join(tmpdir(), 'clearance-no-such-root'),
+      env: { GDRIVE_ROOT_FOLDER_ID: 'folder-synthetic-1' },
+    });
+    const authFactory = async () => new google.auth.OAuth2();
+    const dflt = (await createDriveClient({ config, authFactory })) as GoogleDriveClient;
+    const custom = (await createDriveClient({ config, authFactory, timeoutMs: 5_000 })) as GoogleDriveClient;
+    expect(dflt.timeoutMs).toBe(20_000);
+    expect(custom.timeoutMs).toBe(5_000);
   });
 });
