@@ -1,0 +1,25 @@
+{
+  "event": "tool_call",
+  "request": {
+    "protocol": 1,
+    "adapter": "amp",
+    "event": "tool_call",
+    "root_id": "live-agent-1",
+    "tool": "mcp__clearance__send",
+    "arguments": {
+      "to": [
+        "legal@hashirai-poc.test"
+      ],
+      "subject": "Legal documents for review",
+      "attachments": [
+        "01-mutual-nda-kestrel-orbit.txt"
+      ]
+    },
+    "call_id": "call-b754dbb9-e6f0-459a-9574-cbd6909b1a23"
+  },
+  "status": 200,
+  "reply": {
+    "decision": "allow_call",
+    "protocol": 1
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "event": "tool_result",
+  "request": {
+    "protocol": 1,
+    "adapter": "amp",
+    "event": "tool_result",
+    "root_id": "live-agent-1",
+    "tool": "mcp__clearance__drive_read",
+    "arguments": {
+      "fileId": "file-01",
+      "folder": "legal"
+    },
+    "call_id": "call-aba1da7c-10cd-4f81-bd0b-d177bff5b75d",
+    "outcome": {
+      "status": "success",
+      "body": {
+        "name": "01-mutual-nda-kestrel-orbit.txt",
+        "content": "SPECIMEN Matter Ref: LM-2026-0417",
+        "folder": "legal"
+      }
+    }
+  },
+  "status": 200,
+  "reply": {
+    "decision": "ack",
+    "protocol": 1
+  }
+}

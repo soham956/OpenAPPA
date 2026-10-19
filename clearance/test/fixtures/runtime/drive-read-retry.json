@@ -1,0 +1,20 @@
+{
+  "event": "tool_call",
+  "request": {
+    "protocol": 1,
+    "adapter": "amp",
+    "event": "tool_call",
+    "root_id": "live-agent-1",
+    "tool": "mcp__clearance__drive_read",
+    "arguments": {
+      "fileId": "file-01",
+      "folder": "legal"
+    },
+    "call_id": "call-aba1da7c-10cd-4f81-bd0b-d177bff5b75d"
+  },
+  "status": 200,
+  "reply": {
+    "decision": "allow_call",
+    "protocol": 1
+  }
+}

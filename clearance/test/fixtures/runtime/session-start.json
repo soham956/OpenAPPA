@@ -1,0 +1,14 @@
+{
+  "event": "session_start",
+  "request": {
+    "protocol": 1,
+    "adapter": "amp",
+    "event": "session_start",
+    "root_id": "live-agent-1"
+  },
+  "status": 200,
+  "reply": {
+    "decision": "ack",
+    "protocol": 1
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "event": "tool_result",
+  "request": {
+    "protocol": 1,
+    "adapter": "amp",
+    "event": "tool_result",
+    "root_id": "live-agent-1",
+    "tool": "mcp__appa__execute_remedy_plan",
+    "arguments": {
+      "offer_id": "3dfd91b1bf3ed510"
+    },
+    "call_id": "call-da44f564-7d50-4926-8447-343b0b1542ad",
+    "outcome": {
+      "status": "success",
+      "body": "[appa] Authorized. Call the mcp__clearance__drive_read tool with exactly these arguments to run it: {\"fileId\":\"file-01\",\"folder\":\"legal\"}"
+    }
+  },
+  "status": 200,
+  "reply": {
+    "decision": "ack",
+    "protocol": 1
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "event": "tool_call",
+  "request": {
+    "protocol": 1,
+    "adapter": "amp",
+    "event": "tool_call",
+    "root_id": "live-agent-1",
+    "tool": "mcp__appa__execute_remedy_plan",
+    "arguments": {
+      "offer_id": "3dfd91b1bf3ed510"
+    },
+    "call_id": "call-da44f564-7d50-4926-8447-343b0b1542ad"
+  },
+  "status": 200,
+  "reply": {
+    "decision": "pass_control",
+    "protocol": 1
+  }
+}

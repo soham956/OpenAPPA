@@ -1,0 +1,15 @@
+{
+  "event": "prompt",
+  "request": {
+    "protocol": 1,
+    "adapter": "amp",
+    "event": "prompt",
+    "root_id": "live-agent-1",
+    "text": "check the legal documents and send them to the legal team"
+  },
+  "status": 200,
+  "reply": {
+    "decision": "ack",
+    "protocol": 1
+  }
+}
