@@ -8,6 +8,20 @@ All paths are relative to the repo root. Every task also owns the `clearance/tes
 - P2. Protect `main`, as the brief says.
 - P3. External inputs. Done: the TypeSafe key, `GDRIVE_ROOT_FOLDER_ID` and `GDRIVE_AUTH=oauth` are in the repo-root `.env`. Still due before wave 4: the OAuth client JSON (Desktop app, Internal consent, scope `drive`) at `secrets/gdrive-oauth-client.json`.
 
+## Agent roster (orchestrator, 2026-10-19)
+Each agent is one named, persistent worker with a fixed model and effort. It keeps its lane across waves and is continued, not restarted, for its next task, cutting a fresh branch from up-to-date `main` in its own worktree. Every workbook row for its work, including rejected attempts, logs against its name (Tasks → Owner agent; totals on the Agents tab).
+
+| Agent | Model / effort | Lane | Tasks (wave) |
+|---|---|---|---|
+| Quinn | Opus 5.5 high | Policy and sidecar | T9.1 (1), T10.1 (2), T10.2 (3) |
+| Rowan | Opus 5.5 medium | Platform | T1.1 (1), T1.2 (2), T4.1 (3), T12.1 (4), T12.2 (5) |
+| Sasha | Opus 5.5 medium | Drive | T3.1 (2), T3.2 (3), T3.3 (4) |
+| Ellis | Opus 5.5 medium | Classifier | T5.1 (2), T5.2 (3) |
+| Jules | Opus 5.5 medium | Poller | T7.1 (3) |
+| Mika | Sonnet 5.5 medium | Seed data and decision log | T2.1 (1), T8.1 (2), T8.2 (3) |
+| Remy | Sonnet 5.5 medium | Tools and `npm start` | T11.1 (2), T11.2 (3), T7.2 (4) |
+| Noor | Opus 5.5 low | Fixture recording | T6.1 (4) |
+
 ## Shared-file rules
 - **`clearance/package.json` and `package-lock.json`** are owned by T1.1 only. T1.1 declares every npm script up front, each pointing at a fixed entry file (`start`, `agent`, `reset`, `drop`, `compare`, `drive:check` → `tsx src/cli/<name>.ts`; `fixture:record`; `test`; `typecheck`; `policy:check`). It also creates a stub for each entry file that exits 1 with "not implemented: <task id>". Later tasks replace their own stub and never edit `package.json`. T1.1 pre-installs every known dependency: `googleapis`, `@typesafe-ai/sdk@0.7.0`, `@modelcontextprotocol/sdk`, `dotenv`, `tsx`, `typescript`, `vitest`, `@types/node`. If an implementer needs another dependency, they stop and report it, and the orchestrator lands it in a one-line `chore/deps-*` PR.
 - **`.env.example`, `src/config.ts`, `src/util/jsonl.ts` and `src/log/schema.ts`** are created complete by T1.1 in wave 1. Later tasks import them but don't edit them. A needed change goes back to the orchestrator.
