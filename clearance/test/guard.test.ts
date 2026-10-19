@@ -12,9 +12,10 @@ import { CLEARANCE_DIR } from '../src/config';
 import { FakeDriveClient } from '../src/drive/fake';
 import { DecisionLog } from '../src/log/decision-log';
 import type { EnforceLine } from '../src/log/schema';
+import { driveRead } from '../src/tools/drive';
 import { memoryLoad, memorySave } from '../src/tools/memory';
 import { send } from '../src/tools/send';
-import { Guard, type GuardResult, type GuardTools } from '../src/sidecar/guard';
+import { FOLDER_CHANGED, Guard, type GuardResult, type GuardTools } from '../src/sidecar/guard';
 import { McpRemedyClient, type RemedyCaller } from '../src/sidecar/remedy';
 import { type Sidecar, startSidecar } from '../src/sidecar/runtime';
 import { HookClient } from '../src/sidecar/wire';
@@ -48,6 +49,8 @@ interface World {
   outbox: string;
   memory: string;
   tools: { [K in keyof GuardTools]: ReturnType<typeof vi.fn<GuardTools[K]>> };
+  /** Runs inside drive_read, before the read (to move the file mid-call). */
+  beforeRead?: (fileId: string) => Promise<void>;
 }
 
 /** A fake Drive laid out as after step 1 (ids are deterministic), plus temp logs and spies. */
@@ -65,9 +68,11 @@ async function world(): Promise<World> {
   const memory = join(dir, 'memory.json');
   const tools = {
     drive_list: vi.fn<GuardTools['drive_list']>(async (args, ctx) => (await ctx.drive.list(args.folder)).map((f) => ({ id: f.id, name: f.name }))),
+    // The real tool (it reports the folder after the read). `w.beforeRead` lets a scenario move
+    // the file inside the tool call, after APPA has judged the folder.
     drive_read: vi.fn<GuardTools['drive_read']>(async (args, ctx) => {
-      const f = await ctx.drive.read(args.fileId);
-      return { name: f.name, content: f.content, folder: args.folder };
+      await w.beforeRead?.(args.fileId);
+      return driveRead(ctx.drive, args);
     }),
     send: vi.fn<GuardTools['send']>(async (args, ctx) => {
       const line = send(args, { session: ctx.session, outboxPath: outbox });
@@ -77,7 +82,8 @@ async function world(): Promise<World> {
     memory_load: vi.fn<GuardTools['memory_load']>(async (args) => memoryLoad(args, { memoryPath: memory })),
   };
   const log = new DecisionLog({ path: join(dir, 'decisions.jsonl'), now: () => new Date('2026-10-19T00:00:00Z') });
-  return { dir, drive, ids, log, outbox, memory, tools };
+  const w: World = { dir, drive, ids, log, outbox, memory, tools };
+  return w;
 }
 
 function guardFor(w: World, hook: HookClient, remedy: RemedyCaller, prefix: string): Guard {
@@ -196,6 +202,64 @@ function checkSourceFailure(r: Results, w: World) {
   expect(w.log.readEnforce().at(-1)).toMatchObject({ step: '2d', tool: 'send', decision: 'error' });
 }
 
+/**
+ * Review C2, the check-then-read race: APPA allows a Legal read, then the file moves to
+ * High Risk inside the tool call, before the read. Then a normal read in the same session.
+ */
+async function runRace(guard: Guard, w: World): Promise<Results> {
+  const r: Results = {};
+  const raced = w.ids[LEGAL_FILES[0] as string] as string;
+  w.beforeRead = async (fileId) => {
+    if (fileId === raced) await w.drive.move(fileId, 'high-risk');
+  };
+  await guard.start('agent-1', PROMPT);
+  r.raced = await guard.call('agent-1', 'read', 'drive_read', { fileId: raced });
+  r.next = await guard.call('agent-1', 'read', 'drive_read', { fileId: w.ids[LEGAL_FILES[1] as string] as string });
+  w.beforeRead = undefined;
+  return r;
+}
+
+function checkRace(r: Results, w: World) {
+  expect(r.raced?.decision).toBe('error');
+  expect((r.raced as { reason: string }).reason).toBe(`${FOLDER_CHANGED} (checked legal, read high-risk)`);
+  expect(r.raced).not.toHaveProperty('result');
+  expect(JSON.stringify(r.raced)).not.toContain('MUTUAL NON-DISCLOSURE');
+  expect(r.next?.decision).toBe('allow');
+  expect(w.tools.drive_read).toHaveBeenCalledTimes(2);
+  expect(w.log.readEnforce().map((l) => [l.file, l.decision, l.reason])).toEqual([
+    [LEGAL_FILES[0], 'error', `${FOLDER_CHANGED} (checked legal, read high-risk)`],
+    [LEGAL_FILES[1], 'allow', undefined],
+  ]);
+}
+
+/**
+ * Review C6: arguments the log schema rejects (a numeric `scope`, a string `to`). APPA still
+ * judges the call as proposed and denies it; the guard logs one line without those fields.
+ */
+async function runMalformed(guard: Guard): Promise<Results> {
+  const r: Results = {};
+  await guard.start('agent-1', PROMPT);
+  r.save = await guard.call('agent-1', '2c-save', 'memory_save', { scope: 5, value: MATTER } as never);
+  r.load = await guard.call('agent-1', '2c-load', 'memory_load', { scope: 5 } as never);
+  r.send = await guard.call('agent-1', '2b', 'send', { to: COUNSEL, subject: 'Matter reference' } as never);
+  return r;
+}
+
+function checkMalformed(r: Results, w: World) {
+  for (const key of ['save', 'load', 'send']) {
+    expect(r[key]?.decision).toBe('deny');
+    expect((r[key] as { reason: string }).reason).toMatch(/^\[appa\] invalid call: /);
+  }
+  expect(w.tools.memory_save).not.toHaveBeenCalled();
+  expect(w.tools.memory_load).not.toHaveBeenCalled();
+  expect(w.tools.send).not.toHaveBeenCalled();
+  expect(w.log.readEnforce().map(({ ts: _ts, reason: _r, ...rest }) => rest)).toEqual([
+    { kind: 'enforce', step: '2c-save', session: 'agent-1', tool: 'memory_save', decision: 'deny' },
+    { kind: 'enforce', step: '2c-load', session: 'agent-1', tool: 'memory_load', decision: 'deny' },
+    { kind: 'enforce', step: '2b', session: 'agent-1', tool: 'send', decision: 'deny' },
+  ]);
+}
+
 // ---- recording and replay ---------------------------------------------------------------
 
 interface Exchange {
@@ -267,6 +331,8 @@ const SCENARIOS = [
   { name: 'demo', run: runDemo, check: checkDemo },
   { name: 'hold', run: runHold, check: checkHold },
   { name: 'source-failure', run: runSourceFailure, check: checkSourceFailure },
+  { name: 'race', run: runRace, check: checkRace },
+  { name: 'malformed', run: runMalformed, check: checkMalformed },
 ] as const;
 
 // ---- replayed from fixtures --------------------------------------------------------------
@@ -355,6 +421,72 @@ describe('guard on recorded runtime responses', () => {
     expect(r.decision).toBe('allow');
     expect((r as { result: unknown }).result).toHaveLength(4);
     expect(w.log.readEnforce()[0]).toMatchObject({ step: 'list', tool: 'drive_list', decision: 'allow' });
+  });
+
+  it('settles a raced read as a failure with no body, and the runtime acks it', () => {
+    const results = loadFixture('race').exchanges.filter((e) => e.request.event === 'tool_result' && e.request.tool === 'mcp__clearance__drive_read');
+    expect(results.map((e) => e.request.outcome)).toEqual([
+      { status: 'failure', message: `${FOLDER_CHANGED} (checked legal, read high-risk)` },
+      expect.objectContaining({ status: 'success' }),
+    ]);
+    expect(results.map((e) => (e.reply as { decision: string }).decision)).toEqual(['ack', 'ack']);
+  });
+
+  it('fails closed when the tool reports no folder', async () => {
+    const replies = [{ protocol: 1, decision: 'ack' }, { protocol: 1, decision: 'ack' }, { protocol: 1, decision: 'allow_call' }, { protocol: 1, decision: 'ack' }];
+    const sent: Array<Record<string, unknown>> = [];
+    const fetchImpl: typeof fetch = async (_i, init) => {
+      sent.push(JSON.parse(String(init?.body)) as Record<string, unknown>);
+      return new Response(JSON.stringify(replies.shift()));
+    };
+    w.tools.drive_read.mockImplementationOnce(async () => ({ name: 'x.txt', content: 'secret' }) as never);
+    const guard = guardFor(w, new HookClient({ baseUrl: 'http://127.0.0.1:1', fetch: fetchImpl }), { callRemedy: vi.fn(), close: async () => {} }, 'x-');
+    const r = await guard.call('agent-1', 'read', 'drive_read', { fileId: w.ids['11'] as string });
+    expect(r).toMatchObject({ decision: 'error', reason: `${FOLDER_CHANGED} (checked root, read undefined)` });
+    expect(JSON.stringify(r)).not.toContain('secret');
+    expect(sent.at(-1)).toMatchObject({ event: 'tool_result', outcome: { status: 'failure' } });
+    expect(JSON.stringify(sent.at(-1))).not.toContain('secret');
+  });
+
+  it('never throws: a log write that fails returns error, and no tool runs on deny', async () => {
+    const throwing = new DecisionLog({ path: join(w.dir, 'never.jsonl') });
+    throwing.writeEnforce = () => {
+      throw new TypeError('invalid decision line: disk full');
+    };
+    const denyReply = loadFixture('demo').exchanges.find((e) => (e.reply as { feedback?: string }).feedback?.includes('required recipient'))?.reply;
+    const replies = [{ protocol: 1, decision: 'ack' }, { protocol: 1, decision: 'ack' }, denyReply, { protocol: 1, decision: 'allow_call' }, { protocol: 1, decision: 'ack' }];
+    const fetchImpl: typeof fetch = async () => new Response(JSON.stringify(replies.shift()));
+    const guard = new Guard({
+      hook: new HookClient({ baseUrl: 'http://127.0.0.1:1', fetch: fetchImpl }),
+      remedy: { callRemedy: vi.fn(), close: async () => {} },
+      drive: w.drive,
+      log: throwing,
+      tools: w.tools,
+    });
+
+    const denied = await guard.call('agent-1', '2b', 'send', { to: [COUNSEL], subject: 's' });
+    expect(denied).toEqual({ decision: 'error', tool: 'send', reason: '[guard] the decision log refused the enforce line: invalid decision line: disk full' });
+    expect(w.tools.send).not.toHaveBeenCalled();
+
+    const listed = await guard.call('agent-1', 'list', 'drive_list', { folder: 'legal' });
+    expect(listed.decision).toBe('error');
+    expect(listed).not.toHaveProperty('result');
+  });
+
+  it('never throws on arguments the log schema rejects', async () => {
+    const reply = { protocol: 1, decision: 'deny_call', feedback: '[appa] invalid call: bad', offers: [] };
+    const replies = [{ protocol: 1, decision: 'ack' }, { protocol: 1, decision: 'ack' }, reply, reply, reply];
+    const fetchImpl: typeof fetch = async () => new Response(JSON.stringify(replies.shift()));
+    const guard = guardFor(w, new HookClient({ baseUrl: 'http://127.0.0.1:1', fetch: fetchImpl }), { callRemedy: vi.fn(), close: async () => {} }, 'x-');
+    await expect(guard.call('agent-1', '2c-save', 'memory_save', { scope: 5, value: 'v' } as never)).resolves.toMatchObject({ decision: 'deny' });
+    await expect(guard.call('agent-1', '2c-load', 'memory_load', null as never)).resolves.toMatchObject({ decision: 'deny' });
+    await expect(guard.call('agent-1', '2b', 'send', { to: [1, 2], subject: 's' } as never)).resolves.toMatchObject({ decision: 'deny' });
+    // A step or session the schema does not know cannot be logged: error, never a throw.
+    await expect(guard.call('agent-9' as never, 'read', 'drive_list', { folder: 'legal' })).resolves.toMatchObject({ decision: 'error' });
+    expect(w.log.readEnforce()).toHaveLength(3);
+    expect(w.tools.memory_save).not.toHaveBeenCalled();
+    expect(w.tools.memory_load).not.toHaveBeenCalled();
+    expect(w.tools.send).not.toHaveBeenCalled();
   });
 });
 
