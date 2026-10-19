@@ -50,7 +50,8 @@ describe('expected-decisions.json', () => {
     const reads = expected.enforce.filter((l) => l.step === 'read');
     expect(reads).toHaveLength(4);
     expect(reads.every((l) => l.decision === 'allow')).toBe(true);
-    expect(expected.enforce.filter((l) => l.step !== 'read').map((l) => l.step)).toEqual(['2a', '2b', '2c-save', '2c-load', '2c', '2d']);
+    expect(expected.enforce[0]).toMatchObject({ step: 'list', session: 'agent-1', tool: 'drive_list', decision: 'allow' });
+    expect(expected.enforce.filter((l) => l.step !== 'read' && l.step !== 'list').map((l) => l.step)).toEqual(['2a', '2b', '2c-save', '2c-load', '2c', '2d']);
     expect(expected.outbox).toHaveLength(1);
   });
 
@@ -91,7 +92,7 @@ describe('compareRuns', () => {
       tweakEnforce: (ls) => ls.map((l) => (l.step === '2d' ? { ...l, decision: 'deny' as const } : l)),
     });
     const d = compareRuns(a, b);
-    expect(d?.where).toBe('enforce #10');
+    expect(d?.where).toBe('enforce #11');
     expect(d?.a).toContain('"allow"');
     expect(d?.b).toContain('"deny"');
   });
@@ -100,7 +101,7 @@ describe('compareRuns', () => {
     const a = makeRun('a', { tag: 'a' });
     const b = makeRun('b', { tag: 'b', tweakEnforce: (ls) => ls.slice(0, -1) });
     const d = compareRuns(a, b);
-    expect(d?.where).toBe('enforce #10');
+    expect(d?.where).toBe('enforce #11');
     expect(d?.b).toBe('(missing)');
   });
 
@@ -129,7 +130,7 @@ describe('checkExpected', () => {
       tag: 'a',
       tweakEnforce: (ls) => ls.map((l) => (l.step === '2c' ? { ...l, reason: 'Blocked: something else' } : l)),
     });
-    expect(checkExpected(run, EXPECTED_FILE)?.where).toBe('enforce #9');
+    expect(checkExpected(run, EXPECTED_FILE)?.where).toBe('enforce #10');
   });
 
   it('fails when a classify line is missing', () => {
