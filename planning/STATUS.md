@@ -59,9 +59,16 @@ _Last updated 2026-10-19_
 - Drive test folder: "Hashirai Clearance POC test" in Soham's company My Drive (empty).
 - P1 done: `appa` 0.35.1 installed from the fork at `~/.cargo/bin/appa`.
 
+## Phase 3 (build): started 2026-10-19 on Soham's go-ahead
+- `main` protected: PR required (0 approvals), admins included, linear history, no force-push or delete. Merges are rebase-only and branches auto-delete. The required CI check is added after T1.2 merges.
+- All 13 upstream workflows disabled in the fork (`disabled_manually`). T1.2 deletes the files.
+- Named agent roster (Soham's request): see `planning/tasks.md` → Agent roster, and the workbook's Agents tab. Logs go per agent, not per task.
+- Orchestrator changes to docs and the workbook now go through `chore/orchestrator-*` PRs.
+
 ## Next
-1. **Checkpoint:** Soham reviews the workbook and summary, then gives the go-ahead for the build.
-2. Phase 3: protect `main` (P2), then dispatch wave 1 (T1.1, T2.1, T9.1), each in its own worktree and branch. Merge T1.1 first.
+1. Wave 1: Rowan T1.1, Mika T2.1, Quinn T9.1. Merge T1.1 first, then rebase T2.1 and run its seed test.
+2. Wave 2 after wave 1 merges. Merge T1.2 (CI) first, then require its check on `main`.
+3. Soham: one browser consent click during T3.3 (wave 4).
 
 ## Blockers
 - None. Waiting on Soham's go-ahead at the checkpoint.
