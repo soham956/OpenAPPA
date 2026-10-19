@@ -1,0 +1,27 @@
+{
+  "event": "tool_call",
+  "request": {
+    "protocol": 1,
+    "adapter": "amp",
+    "event": "tool_call",
+    "root_id": "live-agent-1",
+    "tool": "mcp__clearance__drive_read",
+    "arguments": {
+      "fileId": "file-01",
+      "folder": "legal"
+    },
+    "call_id": "call-1fffb192-a78e-4f10-a077-92f0bc6e6f76"
+  },
+  "status": 200,
+  "reply": {
+    "decision": "deny_call",
+    "feedback": "[appa] Blocked: mcp__clearance__drive_read cannot run yet.\n\nWhy:\n  - allowed readers would narrow: public -> 1 reader\n  - Accepting restricts 1 of 4 tools for this session: 0 will need sign-off, 1 will be blocked.\n  - `mcp__clearance__send` can check recipients against the readers of what they send. After accepting, a recipient outside this session's readers fails that check unless a remedy covers it.\n\nContinue:\n  - Accept narrower readers for the rest of this session:\n    mcp__appa__execute_remedy_plan(offer_id: \"3dfd91b1bf3ed510\")",
+    "offers": [
+      {
+        "offer_id": "3dfd91b1bf3ed510"
+      }
+    ],
+    "protocol": 1,
+    "review": []
+  }
+}

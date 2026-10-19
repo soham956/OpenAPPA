@@ -1,0 +1,26 @@
+{
+  "event": "tool_call",
+  "request": {
+    "protocol": 1,
+    "adapter": "amp",
+    "event": "tool_call",
+    "root_id": "live-agent-1",
+    "tool": "mcp__clearance__send",
+    "arguments": {
+      "to": [
+        "counsel@outside-firm.test"
+      ],
+      "subject": "Matter reference",
+      "body": "LM-2026-0417"
+    },
+    "call_id": "call-43432a46-7334-4e14-aaa0-f5f31a25614d"
+  },
+  "status": 200,
+  "reply": {
+    "decision": "deny_call",
+    "feedback": "[appa] Blocked: mcp__clearance__send cannot run yet.\n\nWhy:\n  - the readers do not include 1 required recipient(s)",
+    "offers": [],
+    "protocol": 1,
+    "review": []
+  }
+}

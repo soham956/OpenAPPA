@@ -1,0 +1,23 @@
+{
+  "event": "tool_call",
+  "request": {
+    "protocol": 1,
+    "adapter": "amp",
+    "event": "tool_call",
+    "root_id": "live-agent-hold",
+    "tool": "mcp__clearance__drive_read",
+    "arguments": {
+      "fileId": "file-08",
+      "folder": "high-risk"
+    },
+    "call_id": "call-b95ec720-e63b-4194-9e88-1e4d95eb40d0"
+  },
+  "status": 200,
+  "reply": {
+    "decision": "deny_call",
+    "feedback": "[appa] Blocked: mcp__clearance__drive_read cannot run yet.\n\nWhy:\n  - requires attention: blocked",
+    "offers": [],
+    "protocol": 1,
+    "review": []
+  }
+}

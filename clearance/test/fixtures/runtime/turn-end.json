@@ -1,0 +1,14 @@
+{
+  "event": "turn_end",
+  "request": {
+    "protocol": 1,
+    "adapter": "amp",
+    "event": "turn_end",
+    "root_id": "live-agent-1"
+  },
+  "status": 200,
+  "reply": {
+    "decision": "ack",
+    "protocol": 1
+  }
+}

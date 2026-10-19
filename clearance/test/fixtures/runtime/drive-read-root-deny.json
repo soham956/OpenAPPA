@@ -1,0 +1,23 @@
+{
+  "event": "tool_call",
+  "request": {
+    "protocol": 1,
+    "adapter": "amp",
+    "event": "tool_call",
+    "root_id": "live-agent-hold",
+    "tool": "mcp__clearance__drive_read",
+    "arguments": {
+      "fileId": "file-11",
+      "folder": "root"
+    },
+    "call_id": "call-3d08e0f2-51ab-44e5-a051-7cfc60cd497d"
+  },
+  "status": 200,
+  "reply": {
+    "decision": "deny_call",
+    "feedback": "[appa] invalid call: invalid call: arguments match no registered contract",
+    "offers": [],
+    "protocol": 1,
+    "review": []
+  }
+}
