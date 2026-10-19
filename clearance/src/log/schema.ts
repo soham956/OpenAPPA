@@ -23,7 +23,7 @@ export const CLASSIFY_SOURCES = ['fixture', 'live'] as const;
 export type ClassifySource = (typeof CLASSIFY_SOURCES)[number];
 
 /** Step tags from docs/architecture.md ("One guarded call"). */
-export const STEPS = ['read', '2a', '2b', '2c-save', '2c-load', '2c', '2d'] as const;
+export const STEPS = ['list', 'read', '2a', '2b', '2c-save', '2c-load', '2c', '2d'] as const;
 export type Step = (typeof STEPS)[number];
 
 export const TOOLS = ['drive_list', 'drive_read', 'send', 'memory_save', 'memory_load'] as const;
