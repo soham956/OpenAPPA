@@ -1,7 +1,7 @@
 # Demo script (acceptance test)
 
 Pass = every "See" below holds on two runs from step 0, and `npm run compare` reports the two runs identical.
-Needs Node 22+, the `appa` CLI on PATH, and `.env` filled in from `.env.example`.
+Needs Node 22+ and the `appa` CLI on PATH. Run every `npm` command from `clearance/`. `.env` (from `clearance/.env.example`) and `secrets/` live at the repo root.
 
 **Setup (once).** `.env` holds `TYPESAFE_API_KEY`, `GDRIVE_ROOT_FOLDER_ID`, `CLASSIFIER_MODE=replay`, `CONFIDENCE_THRESHOLD=0.70`.
 Drive auth is one line, **TBD**: `GDRIVE_AUTH=oauth` (client JSON at `secrets/gdrive-oauth-client.json`, Internal consent screen; first run opens a browser once and caches the token in `secrets/`). The alternative is `GDRIVE_AUTH=service-account` with `secrets/gdrive-sa.json`. Nothing else changes.

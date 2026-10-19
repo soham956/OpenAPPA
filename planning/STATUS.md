@@ -14,13 +14,15 @@ _Last updated 2026-10-19_
   - `gh` 2.102 at `~/.local/bin/gh` (Homebrew failed: it needs the Command Line Tools on Tahoe)
   - Rust via rustup (`~/.cargo/bin`, cargo 1.99)
   - Node 22.22 was already here. `@typesafe-ai/sdk` 0.7.0 needs Node 22 or later, not 20.
-- OpenAPPA checked (v0.35.1, commit `7a3c42d`). Steps 2a–2d can be built on it:
-  - **Taint is per session.** 2b is caught natively, but it over-blocks: every external send after a Legal read is refused.
-  - **2c:** no per-record memory labels. Use scoped-memory audiences (`@mem:scope/$scope`).
-  - **2d:** recipients match exact reader IDs, so stub an `internal` member list.
-  - **Refusals:** the runtime writes the deny text. Rewrite it in the TS hook client.
-  - **Node:** no binding. Use the `appa runtime` HTTP sidecar (see `integrations/opencode/appencode.ts`).
-  - **Rust:** 1.96.
+- OpenAPPA checked (v0.35.1, commit `7a3c42d`). Steps 2a–2d can be built on it. Re-verified against the code by the Phase 2 dev lead; corrections are marked:
+  - **Taint is per session (one label per trajectory).** 2b is caught natively, but it over-blocks: every external send after a Legal read is refused.
+  - **2c (corrected):** `@mem:scope/$scope` is not an existing feature. A `@provider:sel/$arg` placeholder needs our own audience-source command. The plan instead uses per-scope contracts, `memory_save(scope:legal-handoff)` and `memory_load(scope:legal-handoff)`, with a literal reader audience. Replay is one trajectory per file, so 2c needs two trace files.
+  - **2d (corrected):** literal readers work in `delta.audience` with no member list (`examples/tests/secret-stays-inside`), so no `internal` stub resolver is needed. But `contains = ["$to"]` needs `to` to be a single string. Multi-recipient sends use `contains = ["@rcpt:addr/$to"]` with a small identity audience source (T9.1 spikes this; there is a per-recipient fallback).
+  - **New: a narrowing is a block.** A read whose `delta` narrows the label returns `deny_call` with an Accept offer. The client must run it: `tool_call` for `mcp__appa__execute_remedy_plan` → `pass_control` → MCP `tools/call` on `/mcp` → `tool_result`. Then it retries. `appa replay` accepts this silently under `expect allow`.
+  - **Refusals:** the runtime writes the deny text (`deny_call.feedback`, prefixed `[appa]`). There is no custom reason field, so the TS hook client rewrites it. Outright denial uses `requires.attention = ["blocked"]`.
+  - **Node:** no binding. Use the `appa runtime` HTTP sidecar. The simpler model is `integrations/amp/amppa.ts` with `--adapter amp` (no inventory or child plumbing), rather than `appencode.ts`.
+  - **New: labels persist** in the runtime's SQLite DB across restarts. `reset` must delete it, or run 2 diverges from run 1.
+  - **Rust:** 1.96 (`mise.toml`). Build with `cargo build --locked -p appa` or `cargo install --locked --path appa-runtime`. `build.rs` embeds git HEAD, so CI caches the binary rather than `target/`.
 
 ## Phase 1 (product agent): accepted by orchestrator, 2026-10-19
 - `docs/demo-script.md` (steps 0–4) and `planning/stories.md` (S1–S12, 24 baseline SP). Agent runtime ~3.9 min.
@@ -41,18 +43,28 @@ _Last updated 2026-10-19_
 - GitHub Actions are enabled on the fork. S1 must disable the upstream workflows (`gh workflow disable` or delete them) so only our CI runs.
 - `main` protection is deferred to the start of Phase 3, so the orchestrator can still commit the workbook and docs.
 
-## In progress
-- Phase 2 dev lead agent (background): `docs/architecture.md` and `planning/tasks.md`.
+## Phase 2 (dev lead agent): accepted by orchestrator, 2026-10-19
+- `docs/architecture.md` and `planning/tasks.md`: 21 tasks, 35 baseline SP (34.85 adjusted), 5 waves. Agent runtime ~11.6 min. The OpenAPPA findings above were corrected by it.
+- Orchestrator edits on review:
+  - `.env` stays at the repo root (`config.ts` loads `../.env`).
+  - T6.1 and T3.3 moved to wave 4, because the inputs arrived early. Waves are now 6 / 11 / 11 / 5 / 2 SP.
+  - The CI secret scan matches secret values (`GOCSPX-`, refresh tokens, a filled `TYPESAFE_API_KEY=`), not key names.
+  - T1.1 moved to Opus 5.5 medium, since it owns the shared schema and config.
+  - Demo-script setup line: run npm from `clearance/`; `.env` and `secrets/` are at the root.
+- Workbook built: `planning/Hashirai Clearance POC - Plan.xlsx` (Stories, Tasks, Calibration, Summary). Formulas are live. Every formula was evaluated with no errors (pycel; LibreOffice isn't installed). Builder script: kept in the session scratchpad, not in the repo.
+
+## External inputs: all in (2026-10-19)
+- Repo-root `.env` (mode 600): `TYPESAFE_API_KEY` (not yet tested live), `GDRIVE_ROOT_FOLDER_ID`, `GDRIVE_AUTH=oauth`.
+- `secrets/gdrive-oauth-client.json` (mode 600): Desktop app client from GCP project `hashirai-clearance-poc`, Internal consent screen. The first `drive:check` (T3.3) needs Soham at a browser for consent.
+- Drive test folder: "Hashirai Clearance POC test" in Soham's company My Drive (empty).
+- P1 done: `appa` 0.35.1 installed from the fork at `~/.cargo/bin/appa`.
 
 ## Next
-1. Review Phase 2. Build `planning/Hashirai Clearance POC - Plan.xlsx` (Stories, Tasks, Calibration, Summary).
-2. Checkpoint: send Soham the workbook and a five-line summary, then wait for his go-ahead.
-3. Soham (before the build): creates the OAuth client (Internal, Drive scope) and saves it to `secrets/gdrive-oauth-client.json`; creates the Drive test folder and shares its ID; puts `TYPESAFE_API_KEY` in `.env`.
-4. Phase 3: protect `main`, then dispatch wave 1.
+1. **Checkpoint:** Soham reviews the workbook and summary, then gives the go-ahead for the build.
+2. Phase 3: protect `main` (P2), then dispatch wave 1 (T1.1, T2.1, T9.1), each in its own worktree and branch. Merge T1.1 first.
 
 ## Blockers
-- OAuth client JSON and the Drive test folder ID (auth method decided: OAuth, Internal). Needed for the build only.
-- TypeSafe key (only needed for the build).
+- None. Waiting on Soham's go-ahead at the checkpoint.
 
 ## Environment note
 Soham may continue from the Claude Code desktop app instead of the terminal. `gh` is at `~/.local/bin/gh`, which may not be on that app's PATH, so call it by its full path.
