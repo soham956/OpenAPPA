@@ -47,7 +47,10 @@ describe('seed files', () => {
   });
 
   it('keeps the matter ref in 01', () => {
-    expect(read(FILES[0])).toContain('Matter Ref: LM-2026-0417');
+    const first = FILES[0];
+    expect(first).toBeDefined();
+    if (first === undefined) return;
+    expect(read(first)).toContain('Matter Ref: LM-2026-0417');
   });
 
   it('uses only fictional .test email addresses', () => {
