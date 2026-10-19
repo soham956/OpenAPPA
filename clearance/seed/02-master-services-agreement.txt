@@ -1,0 +1,27 @@
+SPECIMEN — synthetic test document, not real data
+
+MASTER SERVICES AGREEMENT
+
+Between Orbit Harbour Systems Ltd ("Customer") and Northwind Delivery Partners Ltd ("Supplier"), both fictional companies. Effective date: 1 October 2026.
+
+1. Services. The Supplier shall provide the services described in each Statement of Work signed by both parties. Each Statement of Work forms part of this Agreement and, in a conflict, this Agreement prevails unless the Statement of Work expressly states otherwise.
+
+2. Standard of performance. The Supplier warrants that the services will be performed with reasonable skill and care, by suitably qualified personnel, and in accordance with applicable law.
+
+3. Intellectual property. Pre-existing intellectual property remains with its owner. Deliverables created specifically for the Customer are assigned to the Customer on payment in full.
+
+4. Limitation of liability. Subject to clause 5, each party's total aggregate liability arising under or in connection with this Agreement, whether in contract, tort (including negligence) or otherwise, is limited to the fees paid or payable in the twelve months preceding the claim. Neither party is liable for indirect or consequential loss.
+
+5. Unlimited liability. Nothing in this Agreement limits liability for death or personal injury caused by negligence, for fraud or fraudulent misrepresentation, or for any liability that cannot lawfully be limited.
+
+6. Indemnity. The Supplier shall indemnify the Customer against third-party claims that the deliverables infringe intellectual property rights, subject to prompt notice and the Supplier's control of the defence.
+
+7. Termination. Either party may terminate this Agreement (a) for convenience on ninety days' written notice; or (b) immediately by written notice if the other commits a material breach that is not remedied within thirty days of notice, or becomes insolvent.
+
+8. Consequences of termination. Accrued rights and the clauses on liability, confidentiality and governing law survive termination.
+
+9. Confidentiality, data protection and force majeure are addressed in Schedules 1 to 3.
+
+10. Governing law. This Agreement is governed by the laws of England and Wales and the courts of England and Wales have exclusive jurisdiction.
+
+Contract contact: contracts@orbit-harbour.test

@@ -1,0 +1,36 @@
+SPECIMEN — synthetic test document, not real data
+
+PAYSLIP: SEPTEMBER 2026
+Employer: Orbit Harbour Systems Ltd (fictional)
+Employee: Maren Lindqvist (fictional person)
+Employee personal ID: SPC-7781-0356
+Pay period: 1 to 30 September 2026
+Pay date: 28 September 2026
+
+Earnings                        Hours/Rate        Amount (GBP)
+Basic salary                    monthly            3,850.00
+Overtime                        6 hrs x 28.00        168.00
+Expense reimbursement           Q3 claim             115.20
+Gross pay                                          4,133.20
+
+Deductions
+Income tax (code 0000X, fake)                        612.40
+National insurance                                   301.55
+Pension contribution (5%)                            192.50
+Total deductions                                   1,106.45
+
+Net pay                                            3,026.75
+
+Year to date
+Gross pay                                         37,200.00
+Tax paid                                           5,508.00
+National insurance                                 2,713.50
+Pension (employee)                                 1,732.50
+Pension (employer 3%)                              1,039.50
+
+Payment method: bank transfer to account ending 0000 (fake), sort code 00-00-00 (fake).
+Payroll reference: PAY-0926
+
+Payroll queries: payroll@orbit-harbour.test
+Tax code and pension rates are applied by the payroll system from the employee's notified details. Overtime is paid one month in arrears at the standard hourly rate shown. Expense reimbursement is paid net of any tax already accounted for on the original claim. Holiday balance at period end: 11.5 days remaining. Any query about this payslip should be raised with payroll within 30 days of the pay date so that corrections can be made in the next pay run.
+This payslip is a statement of earnings and deductions for the period shown and should be retained for your records.

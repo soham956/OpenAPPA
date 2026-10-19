@@ -1,0 +1,31 @@
+SPECIMEN — synthetic test document, not real data
+
+ORBIT HARBOUR SYSTEMS LTD (fictional)
+Company number: 00000000
+
+WRITTEN RESOLUTIONS OF THE BOARD OF DIRECTORS
+Passed on 14 October 2026
+
+The undersigned, being all of the directors of the Company entitled to vote, pass the following resolutions in accordance with the Articles of Association and the Companies Act 2006.
+
+RECITALS
+
+A. The Company wishes to engage Northwind Delivery Partners Ltd to provide delivery services.
+B. A draft Master Services Agreement (the "MSA") has been presented to the board and its terms, including the limitation of liability and termination provisions, have been reviewed with counsel.
+C. The directors consider that entering into the MSA is in the best interests of the Company and would promote its success for the benefit of its members.
+
+IT IS RESOLVED THAT:
+
+1. The MSA between the Company and Northwind Delivery Partners Ltd, in the form tabled at the meeting, is approved and the Company is authorised to enter into it.
+2. Any one director is authorised to sign and deliver the MSA and any Statement of Work under it on behalf of the Company, together with all ancillary documents.
+3. The Company Secretary is directed to record these resolutions in the minute book and to file any required notification with the registrar.
+4. All actions previously taken by any director in connection with the MSA are ratified and confirmed.
+5. Each director has disclosed any interest in the transaction in accordance with section 177 of the Companies Act 2006; none was declared.
+
+Certified as a true record:
+
+______________________  Director (fictional signatory J. Example)
+______________________  Director (fictional signatory P. Sample)
+______________________  Company Secretary
+
+Queries to: secretary@orbit-harbour.test

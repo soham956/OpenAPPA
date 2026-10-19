@@ -1,0 +1,38 @@
+SPECIMEN — synthetic test document, not real data
+
+INVOICE No. 0193
+
+From: Northwind Delivery Partners Ltd (fictional)
+3 Placeholder Park, Exampleton EX1 1AA
+VAT Reg: GB 000 0000 00 (fake)
+Email: accounts@northwind-delivery.test
+
+To: Orbit Harbour Systems Ltd
+9 Imaginary Quay, Sampleton SM2 0BB
+
+Invoice date: 30 September 2026
+Due date: 30 October 2026
+Purchase order: PO-5521
+
+Description                          Qty   Unit price   Amount
+Route planning workshop                2     450.00      900.00
+Delivery tracking setup                1   1,200.00    1,200.00
+Monthly support retainer (Sept)        1     650.00      650.00
+Courier consumables                   40       4.25      170.00
+
+Subtotal:                                             2,920.00
+VAT at 20%:                                             584.00
+Total due (GBP):                                      3,504.00
+
+Payment terms: net 30 days from invoice date. Late payments incur interest at 2% per month on the outstanding balance.
+
+Payment by bank transfer to:
+Account name: Northwind Delivery Partners Ltd
+Sort code: 00-00-00 (fake)
+Account number: 00000000 (fake)
+Reference: INV-0193
+
+Please quote the invoice number on remittance. Remittance advice to accounts@northwind-delivery.test. Any discrepancy must be queried within 7 days of receipt, otherwise the invoice is deemed accepted.
+
+Thank you for your business.
+Outstanding balance on account before this invoice: 0.00
