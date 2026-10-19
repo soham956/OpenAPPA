@@ -59,3 +59,17 @@ Acceptance test: `docs/demo-script.md` (steps 0–4). 1 SP = up to 20 min of Opu
 - Poller durability: if the log write fails after a successful move, that classify line is lost. Persist pending lines and retry them.
 - A wider confidence margin for seed 10. It records at 0.66 against the 0.70 threshold, so a live re-record could cross it.
 - A faster reset on Workspace Drive (batch calls); today it takes 23–45 s.
+- From the code review (`docs/poc-review.md`), must-fix before building on this:
+  - **C1:** run the guard outside the agent's process, bound to one trajectory per connection, with unique root ids.
+  - **C3:** one source of truth for labels: store the label per file ID and revision, or lock folder writes.
+  - **C4:** put classifier egress to TypeSafe under policy, and stop writing fixtures at run time.
+  - **C5:** attachments become file IDs that the guard reads and labels.
+- From the code review, should-fix:
+  - **C7:** an outcome for "ran, settle failed".
+  - **C8:** typed offers and reasons instead of matching runtime text.
+  - **C9:** a service account scoped to the tree, and a guarded token listener.
+  - **Q1:** remove the duplicated Drive tools.
+  - **Q2:** generate the policy knowledge from `appa describe`.
+  - **Q3:** take the demo enums out of the core types.
+  - **Q5:** shared atomic writes and a memory lock.
+  - **Q6:** fewer Drive calls per read.
