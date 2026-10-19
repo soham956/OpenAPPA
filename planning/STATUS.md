@@ -130,10 +130,15 @@ _Last updated 2026-10-19: **POC done.** All 21 tasks merged, Phase 4 accepted._
 
   1 SP = 20 min was about 7× too generous for well-specified tasks. High effort wasn't measurably slower than medium.
 
+## After acceptance (2026-10-19)
+- **Live stall during a recording rehearsal.** A Drive request hung for minutes, because the client had no timeout. Fixed as T3.1 rework by Sasha (#32): 20 s timeouts and safe retries.
+- **Independent code review**, merged as `docs/poc-review.md` (#31). It found 6 must-fix items. Soham chose to fix C2 and C6 now: T10.2 rework by Quinn (#33), so the guard fails closed when a file's folder changes between check and read, and `Guard.call` never throws. The rest is on the Later list in `planning/stories.md`.
+- **Re-checked live after both fixes:** identical to Phase 4 run 1, and matches expected.
+- **Videos:** the explainer reel is in `media/reel/out/final.mp4`. Soham recorded the real-run screen video. Both are git-ignored, local only.
+- **Separate sessions:** the story-point and process analysis, and the code review.
+
 ## Next
-1. Soham: choose the video. Either a recording of a real run (terminal plus Drive in the browser), or an explainer reel (`motion-reel`).
-2. The code-quality review session needs Soham to click **Trust repository** in that session before it can start.
-3. Later: see the Later list in `planning/stories.md` and the workbook's Summary tab.
+- The real build. Start from the Later list, beginning with the review's must-fix items, and from the build-on-or-bin notes.
 
 ## Blockers
 - None.
