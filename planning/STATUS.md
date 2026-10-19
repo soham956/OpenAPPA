@@ -35,18 +35,23 @@ _Last updated 2026-10-19_
   - Jev uses a **recorded fixture**.
   - Drive uses **OAuth with an Internal consent screen**, client JSON at `secrets/gdrive-oauth-client.json`. S3 stays at 3 SP.
 
+## Repo
+- Fork: https://github.com/soham956/OpenAPPA (public, `gh` logged in as soham956). `origin` = fork, `upstream` = archestra-ai/OpenAPPA.
+- Commits on `main`: `47b654e9` brief (`docs/orchestrator-brief.md`; root `ORCHESTRATOR.md` is a symlink to it) plus `.gitignore` for `secrets/` and `.env.*`; `b7135837` Phase 1 docs.
+- GitHub Actions are enabled on the fork. S1 must disable the upstream workflows (`gh workflow disable` or delete them) so only our CI runs.
+- `main` protection is deferred to the start of Phase 3, so the orchestrator can still commit the workbook and docs.
+
 ## In progress
-- `gh auth login --web` is running in the background via a device code. The terminal-tab version stopped responding to input after the shell reconnected.
+- Phase 2 dev lead agent (background): `docs/architecture.md` and `planning/tasks.md`.
 
 ## Next
-1. Soham logs in to GitHub (`gh auth login --web`, signing in via SSO in the browser). Then check whether the account is enterprise-managed, since that may block forking.
-2. Fork OpenAPPA, then in this folder: `git init`, add the fork as `origin`, fetch, check out `main`. Commit the brief as `docs/orchestrator-brief.md`.
-3. Soham creates the OAuth client (Internal, Drive scope) in a Workspace GCP project and saves the JSON to `secrets/gdrive-oauth-client.json`. He also creates the test folder and gives us its ID.
-4. Phase 2: dev lead agent (architecture.md, tasks, waves), then build the workbook and run the checkpoint with Soham.
+1. Review Phase 2. Build `planning/Hashirai Clearance POC - Plan.xlsx` (Stories, Tasks, Calibration, Summary).
+2. Checkpoint: send Soham the workbook and a five-line summary, then wait for his go-ahead.
+3. Soham (before the build): creates the OAuth client (Internal, Drive scope) and saves it to `secrets/gdrive-oauth-client.json`; creates the Drive test folder and shares its ID; puts `TYPESAFE_API_KEY` in `.env`.
+4. Phase 3: protect `main`, then dispatch wave 1.
 
 ## Blockers
-- GitHub login: password login fails, but SSO works in the browser.
-- Drive auth method and OAuth client JSON.
+- OAuth client JSON and the Drive test folder ID (auth method decided: OAuth, Internal). Needed for the build only.
 - TypeSafe key (only needed for the build).
 
 ## Environment note
