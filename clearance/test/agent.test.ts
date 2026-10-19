@@ -25,10 +25,14 @@ type Event =
   | { op: 'call'; session: SessionId; step: Step; tool: ToolName; args: unknown };
 
 /**
- * A stub guard with the demo's decisions: reads and memory allowed, any send that
- * includes counsel denied with the session's reason, 2d allowed. Records every event.
+ * A stub guard with the demo's decisions: the listing, reads and memory allowed, any send
+ * that includes counsel denied with the session's reason, 2d allowed. Records every event.
  */
-function stubGuard(contents: Record<string, string>, nameOf: (fileId: string) => string = (id) => id.replace(/^id-/, '')) {
+// Deliberately out of order: the agent reads in name order.
+const defaultListing = () => [...LEGAL].reverse().map((name) => ({ id: `id-${name}`, name }));
+
+function stubGuard(contents: Record<string, string>, listing: { id: string; name: string }[] = defaultListing(), listDecision: 'allow' | 'deny' = 'allow') {
+  const nameOf = (id: string) => listing.find((f) => f.id === id)?.name ?? id;
   const events: Event[] = [];
   const memory = new Map<string, string>();
   const line = (session: SessionId, step: Step, tool: ToolName, decision: EnforceLine['decision']): EnforceLine => ({
@@ -50,6 +54,9 @@ function stubGuard(contents: Record<string, string>, nameOf: (fileId: string) =>
       const a = args as Record<string, unknown>;
       const allow = (result: unknown) => ({ decision: 'allow', tool, result, line: line(session, step, tool, 'allow') }) as GuardResult<typeof tool>;
       switch (tool) {
+        case 'drive_list':
+          if (listDecision === 'deny') return { decision: 'deny', tool, reason: 'no', line: line(session, step, tool, 'deny') } as GuardResult<typeof tool>;
+          return allow(listing.map((f) => ({ ...f })));
         case 'drive_read': {
           const name = nameOf(String(a.fileId));
           return allow({ name, content: contents[name] ?? '', folder: 'legal' });
@@ -77,17 +84,16 @@ function stubGuard(contents: Record<string, string>, nameOf: (fileId: string) =>
 }
 
 const seedContents = () => Object.fromEntries(LEGAL.map((n) => [n, readFileSync(join(SEED, n), 'utf8')]));
-// Deliberately out of order: the agent reads in name order.
-const listLegal = async () => [...LEGAL].reverse().map((name) => ({ id: `id-${name}`, name }));
 
 describe('scripted agent', () => {
   it('makes the exact demo call sequence with the exact arguments', async () => {
     const { guard, events } = stubGuard(seedContents());
-    const res = await runScript(DEFAULT_TASK, { guard, listLegal, print: () => {} });
+    const res = await runScript(DEFAULT_TASK, { guard, print: () => {} });
     expect(res.aborted).toBeUndefined();
     const ref = 'LM-2026-0417';
     expect(events).toEqual([
       { op: 'start', session: 'agent-1', prompt: DEFAULT_TASK },
+      { op: 'call', session: 'agent-1', step: 'list', tool: 'drive_list', args: { folder: 'legal' } },
       ...LEGAL.map((name) => ({ op: 'call', session: 'agent-1', step: 'read', tool: 'drive_read', args: { fileId: `id-${name}` } })),
       {
         op: 'call', session: 'agent-1', step: '2a', tool: 'send',
@@ -105,9 +111,8 @@ describe('scripted agent', () => {
       { op: 'end', session: 'agent-1' },
       { op: 'end', session: 'agent-2' },
     ]);
-    // No guarded drive_list: the expected run has exactly 4 read lines.
-    expect(events.filter((e) => e.op === 'call' && e.tool === 'drive_list')).toEqual([]);
     expect(res.steps.map((s) => [s.step, s.decision])).toEqual([
+      ['list', 'allow'],
       ['read', 'allow'], ['read', 'allow'], ['read', 'allow'], ['read', 'allow'],
       ['2a', 'deny'], ['2b', 'deny'], ['2c-save', 'allow'], ['2c-load', 'allow'], ['2c', 'deny'], ['2d', 'allow'],
     ]);
@@ -117,27 +122,36 @@ describe('scripted agent', () => {
     const contents = seedContents();
     contents[LEGAL[0]!] = contents[LEGAL[0]!]!.replace('LM-2026-0417', 'LM-1999-0042');
     const { guard, events } = stubGuard(contents);
-    await runScript(DEFAULT_TASK, { guard, listLegal, print: () => {} });
+    await runScript(DEFAULT_TASK, { guard, print: () => {} });
     const bodies = events.flatMap((e) => (e.op === 'call' ? [(e.args as { body?: string; value?: string }).body ?? (e.args as { value?: string }).value] : []));
     expect(bodies.filter(Boolean)).toEqual(['LM-1999-0042', 'LM-1999-0042', 'LM-1999-0042']);
+  });
+
+  it('stops when the guarded listing is not allowed, reading nothing', async () => {
+    const { guard, events } = stubGuard(seedContents(), defaultListing(), 'deny');
+    const res = await runScript(DEFAULT_TASK, { guard, print: () => {} });
+    expect(res.aborted).toMatch(/could not list/);
+    expect(events.filter((e) => e.op === 'call').map((e) => (e as { tool: string }).tool)).toEqual(['drive_list']);
+    expect(events.slice(-2)).toEqual([{ op: 'end', session: 'agent-1' }, { op: 'end', session: 'agent-2' }]);
   });
 
   it('prints each decision and reason', async () => {
     const lines: string[] = [];
     const { guard } = stubGuard(seedContents());
-    await runScript(DEFAULT_TASK, { guard, listLegal, print: (l) => lines.push(l) });
+    await runScript(DEFAULT_TASK, { guard, print: (l) => lines.push(l) });
     expect(lines).toContain(`[agent-1] 2a send to ${INTERNAL}, ${EXTERNAL}: deny. ${REASON_FILE}`);
     expect(lines).toContain(`[agent-1] 2b send LM-2026-0417 to ${EXTERNAL}: deny. ${REASON_FILE}`);
     expect(lines).toContain(`[agent-2] 2c send LM-2026-0417 to ${EXTERNAL}: deny. ${REASON_MEMORY}`);
     expect(lines).toContain(`[agent-1] 2d send to ${INTERNAL}: allow`);
+    expect(lines).toContain('[agent-1] list drive_list legal: allow');
     expect(lines.filter((l) => / read drive_read .*: allow$/.test(l))).toHaveLength(4);
   });
 
   it('stops after 2a and still ends both sessions when no matter reference was read', async () => {
     const { guard, events } = stubGuard(Object.fromEntries(LEGAL.map((n) => [n, 'SPECIMEN no reference here'])));
-    const res = await runScript(DEFAULT_TASK, { guard, listLegal, print: () => {} });
+    const res = await runScript(DEFAULT_TASK, { guard, print: () => {} });
     expect(res.aborted).toMatch(/no matter reference/);
-    expect(res.steps.map((s) => s.step)).toEqual(['read', 'read', 'read', 'read', '2a']);
+    expect(res.steps.map((s) => s.step)).toEqual(['list', 'read', 'read', 'read', 'read', '2a']);
     expect(events.slice(-2)).toEqual([{ op: 'end', session: 'agent-1' }, { op: 'end', session: 'agent-2' }]);
   });
 });
@@ -156,8 +170,7 @@ describe('npm run agent', () => {
     const drive = new FakeDriveClient();
     for (const n of LEGAL) await drive.upload(n, readFileSync(join(SEED, n), 'utf8'), 'legal');
     await drive.upload('05-invoice-0193.txt', 'x', 'accounting');
-    const names = new Map((await drive.list('legal')).map((f) => [f.id, f.name]));
-    const { guard, events } = stubGuard(seedContents(), (id) => names.get(id) ?? id);
+    const { guard, events } = stubGuard(seedContents());
     const urls: string[] = [];
     const lines: string[] = [];
     const code = await main(['check', 'the', 'legal', 'documents'], {
@@ -173,10 +186,11 @@ describe('npm run agent', () => {
     expect(code).toBe(0);
     expect(urls).toEqual(['http://127.0.0.1:8790']);
     expect(events[0]).toEqual({ op: 'start', session: 'agent-1', prompt: 'check the legal documents' });
-    // File ids come from the Legal folder of the Drive client.
-    const legalIds = (await drive.list('legal')).map((f) => f.id).sort();
-    const readIds = events.flatMap((e) => (e.op === 'call' && e.tool === 'drive_read' ? [(e.args as { fileId: string }).fileId] : [])).sort();
-    expect(readIds).toEqual(legalIds);
+    // The agent never lists Drive itself: the ids come from the guarded drive_list.
+    expect(events[1]).toEqual({ op: 'call', session: 'agent-1', step: 'list', tool: 'drive_list', args: { folder: 'legal' } });
+    const readIds = events.flatMap((e) => (e.op === 'call' && e.tool === 'drive_read' ? [(e.args as { fileId: string }).fileId] : []));
+    expect(readIds).toEqual(LEGAL.map((n) => `id-${n}`));
+    expect(drive.calls).toEqual([]);
     expect(lines[0]).toBe('[agent-1] task: check the legal documents');
   });
 

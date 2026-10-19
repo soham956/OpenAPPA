@@ -1,6 +1,6 @@
 // npm run agent -- "<task>": demo step 2, against the sidecar `npm start` runs.
 import { pathToFileURL } from 'node:url';
-import { runScript, type AgentGuard, type LegalFile } from '../agent/script';
+import { runScript, type AgentGuard } from '../agent/script';
 import { type Config, getConfig } from '../config';
 import { createDriveClient } from '../drive/factory';
 import type { DriveClient } from '../drive/types';
@@ -60,8 +60,7 @@ export async function main(argv: readonly string[], deps: AgentCliDeps = {}): Pr
     }
     const drive = await (deps.createDrive ?? ((config) => createDriveClient({ config })))(cfg);
     const { guard, close } = (deps.makeGuard ?? buildGuard)(cfg, drive, baseUrl);
-    const listLegal = async (): Promise<LegalFile[]> => (await drive.list('legal')).map((f) => ({ id: f.id, name: f.name }));
-    const res = await runScript(task, { guard, listLegal, print }).finally(() => close().catch(() => {}));
+    const res = await runScript(task, { guard, print }).finally(() => close().catch(() => {}));
     if (res.aborted) return 1;
     return res.steps.some((s) => s.decision === 'error') ? 1 : 0;
   } catch (err) {
