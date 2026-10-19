@@ -65,10 +65,26 @@ _Last updated 2026-10-19_
 - Named agent roster (Soham's request): see `planning/tasks.md` → Agent roster, and the workbook's Agents tab. Logs go per agent, not per task.
 - Orchestrator changes to docs and the workbook now go through `chore/orchestrator-*` PRs.
 
+## Wave 1: done, 2026-10-19 (all merged to `main`, which passes vitest 30/30, typecheck and replay 8/8)
+| Task | Agent | PR | Runtime | Result |
+|---|---|---|---|---|
+| T1.1 scaffold | Rowan | #4 | 5.8 min | Accepted first time |
+| T2.1 seed files | Mika | #2 | 2.3 + 0.5 min | Attempt 1 rejected (strict-tsc error, seen only in the combined check); accepted after rework |
+| T9.1 policy | Quinn | #3 | 5.6 min | Accepted. Primary recipient approach works (no fallback) |
+- Stories S2 and S9 are done. S1 waits on T1.2.
+- **Estimate signal:** wave 1 ran at about 8–20% of its adjusted estimate. That's one wave, so no recalibration yet; see the Agents and Calibration tabs.
+- Review practice: before merging, the orchestrator applies a wave's PRs together in a scratch worktree and runs everything. That's how T2.1's error was caught.
+- Merging: Soham allowed `gh pr merge -R soham956/OpenAPPA --rebase <n>` in `.claude/settings.local.json` (git-ignored; `--admin` and `--auto` are denied).
+- Notes for wave 2:
+  - T1.2's secret scan must skip `planning/` and `docs/`, which describe the `TYPESAFE_API_KEY=` rule.
+  - `drive_list` logs as step `read`.
+  - Quinn's `clearance/policy/README.md` holds the tool argument schemas and the exact deny feedback.
+
 ## Next
-1. Wave 1: Rowan T1.1, Mika T2.1, Quinn T9.1. Merge T1.1 first, then rebase T2.1 and run its seed test.
-2. Wave 2 after wave 1 merges. Merge T1.2 (CI) first, then require its check on `main`.
-3. Soham: one browser consent click during T3.3 (wave 4).
+1. Wave 2:
+   - Rowan T1.2 (CI): merge first, then add its check as required on `main`.
+   - Sasha T3.1, Ellis T5.1, Mika T8.1, Quinn T10.1 and Remy T11.1.
+2. Soham: one browser consent click during T3.3 (wave 4).
 
 ## Blockers
 - None. Waiting on Soham's go-ahead at the checkpoint.
