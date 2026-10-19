@@ -14,6 +14,7 @@
     { "kind": "classify", "file": "11-vendor-invoice-0207.txt", "label": "Accounting", "rule": "jev", "jev": "Accounting", "source": "fixture", "moved": "Accounting" }
   ],
   "enforce": [
+    { "kind": "enforce", "step": "list", "session": "agent-1", "tool": "drive_list", "decision": "allow" },
     { "kind": "enforce", "step": "read", "session": "agent-1", "tool": "drive_read", "file": "01-mutual-nda-kestrel-orbit.txt", "decision": "allow" },
     { "kind": "enforce", "step": "read", "session": "agent-1", "tool": "drive_read", "file": "02-master-services-agreement.txt", "decision": "allow" },
     { "kind": "enforce", "step": "read", "session": "agent-1", "tool": "drive_read", "file": "03-cease-and-desist-letter.txt", "decision": "allow" },
