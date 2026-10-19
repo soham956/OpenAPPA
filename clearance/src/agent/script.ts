@@ -1,11 +1,9 @@
 // The scripted agent (demo step 2). A fixed sequence of guarded tool calls:
-//   agent-1: read the Legal files [read], 2a, 2b, 2c-save
+//   agent-1: list Legal [list], read 01–04 [read], 2a, 2b, 2c-save
 //   agent-2: 2c-load, 2c
 //   agent-1: 2d
-// Every tool call goes through the guard; the agent never calls a tool directly.
-// Finding the Legal file ids is done by the harness (`listLegal`, metadata only) rather
-// than a guarded `drive_list`, so the run logs exactly the 4 read lines that
-// docs/demo-script.md and expected-decisions.json expect.
+// Every tool call, including the Legal listing, goes through the guard; the agent
+// never touches Drive or a tool directly.
 import type { AgentArgs, Guard, GuardResult } from '../sidecar/guard';
 import type { SessionId, Step, ToolName } from '../log/schema';
 
@@ -22,15 +20,8 @@ export const MATTER_REF_RE = /Matter Ref:\s*([A-Z]{2}-\d{4}-\d{4})/;
 /** The part of the guard the agent uses (a stub in tests). */
 export type AgentGuard = Pick<Guard, 'start' | 'end' | 'call'>;
 
-export interface LegalFile {
-  id: string;
-  name: string;
-}
-
 export interface ScriptDeps {
   guard: AgentGuard;
-  /** Ids and names of the files in Legal (harness-side metadata, not a guarded call). */
-  listLegal: () => Promise<LegalFile[]>;
   print?: (line: string) => void;
 }
 
@@ -77,8 +68,14 @@ export async function runScript(task: string, deps: ScriptDeps): Promise<ScriptR
   print(`[${AGENT_1}] task: ${task}`);
   await guard.start(AGENT_1, task);
   try {
-    // Read the Legal files, in name order.
-    const legal = [...(await deps.listLegal())].sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
+    // List Legal through the guard, then read the files in name order.
+    const listed = await call(AGENT_1, 'list', 'drive_list', { folder: 'legal' }, 'legal');
+    if (listed.decision !== 'allow' || typeof listed.result === 'string') {
+      result.aborted = 'could not list the Legal folder';
+      print(`[${AGENT_1}] stopping: ${result.aborted}`);
+      return result;
+    }
+    const legal = [...listed.result].sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
     const read: { name: string; content: string }[] = [];
     for (const f of legal) {
       const r = await call(AGENT_1, 'read', 'drive_read', { fileId: f.id }, f.name);
