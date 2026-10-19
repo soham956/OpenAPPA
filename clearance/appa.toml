@@ -1,0 +1,101 @@
+# Hashirai Clearance POC policy. See docs/architecture.md "Policy design" and
+# clearance/policy/README.md for the tool argument schemas and the spike result.
+#
+# Tools are served under the MCP server name `clearance`: the guard proposes the raw name
+# `mcp__clearance__<tool>`, canonical `mcp/clearance/<tool>`. `folder` is a trusted argument
+# the guard fills from Drive (`DriveClient.folderOf`), never the agent.
+
+[policy]
+version = 2
+
+# ---- drive_read: the folder decides the label --------------------------------------------
+
+# Legal and Accounting content may only reach the one internal reader.
+[[policy.tool]]
+name = "mcp/clearance/drive_read(folder:legal)"
+description = "Reads one Drive file in the Legal folder."
+parameters = { type = "object", properties = { fileId = { type = "string", minLength = 1 }, folder = { type = "string" } }, required = ["fileId", "folder"], additionalProperties = false }
+delta = { audience = ["legal@hashirai-poc.test"] }
+
+[[policy.tool]]
+name = "mcp/clearance/drive_read(folder:accounting)"
+description = "Reads one Drive file in the Accounting folder."
+parameters = { type = "object", properties = { fileId = { type = "string", minLength = 1 }, folder = { type = "string" } }, required = ["fileId", "folder"], additionalProperties = false }
+delta = { audience = ["legal@hashirai-poc.test"] }
+
+# High Risk is the review hold: no authority permits `blocked`, so the read is denied with
+# no offer. A person releases a file by moving it out in Drive; the next read sees the new
+# folder.
+[[policy.tool]]
+name = "mcp/clearance/drive_read(folder:high-risk)"
+description = "Reads one Drive file in the High Risk review hold."
+parameters = { type = "object", properties = { fileId = { type = "string", minLength = 1 }, folder = { type = "string" } }, required = ["fileId", "folder"], additionalProperties = false }
+requires = { attention = ["blocked"] }
+delta = {}
+
+# A read in the root (unclassified) or any other folder matches no contract, so it is refused.
+
+# ---- drive_list ----------------------------------------------------------------------
+
+[[policy.tool]]
+name = "mcp/clearance/drive_list(folder:legal)"
+description = "Lists file names and ids in the Legal folder."
+parameters = { type = "object", properties = { folder = { type = "string" } }, required = ["folder"], additionalProperties = false }
+delta = {}
+
+[[policy.tool]]
+name = "mcp/clearance/drive_list(folder:accounting)"
+description = "Lists file names and ids in the Accounting folder."
+parameters = { type = "object", properties = { folder = { type = "string" } }, required = ["folder"], additionalProperties = false }
+delta = {}
+
+# ---- send ----------------------------------------------------------------------------
+
+# Every recipient must already be a reader of what the session has read: `addr/<email>` is
+# a one-member collection served by policy/rcpt-audience.mjs, one per element of `to`.
+[[policy.tool]]
+name = "mcp/clearance/send"
+description = "Sends a message (mock outbox) to one or more recipients."
+parameters = { type = "object", properties = { to = { type = "array", items = { type = "string" }, minItems = 1 }, subject = { type = "string" }, body = { type = "string" }, attachments = { type = "array", items = { type = "string" } } }, required = ["to", "subject"], additionalProperties = false }
+requires = { audience = { contains = ["@rcpt:addr/$to"] } }
+delta = {}
+
+# ---- memory --------------------------------------------------------------------------
+
+# The `legal-handoff` scope has a fixed audience, so a value can cross sessions with its
+# restriction: saving needs the session to be fit for legal@, loading narrows to legal@.
+[[policy.tool]]
+name = "mcp/clearance/memory_save(scope:legal-handoff)"
+description = "Saves a value to the legal-handoff memory scope."
+parameters = { type = "object", properties = { scope = { type = "string" }, value = { type = "string" } }, required = ["scope", "value"], additionalProperties = false }
+requires = { audience = { contains = ["legal@hashirai-poc.test"] } }
+delta = {}
+
+[[policy.tool]]
+name = "mcp/clearance/memory_save"
+description = "Saves a value to a public memory scope."
+parameters = { type = "object", properties = { scope = { type = "string" }, value = { type = "string" } }, required = ["scope", "value"], additionalProperties = false }
+requires = { audience = { contains = ["public"] } }
+delta = {}
+
+[[policy.tool]]
+name = "mcp/clearance/memory_load(scope:legal-handoff)"
+description = "Loads the value saved in the legal-handoff memory scope."
+parameters = { type = "object", properties = { scope = { type = "string" } }, required = ["scope"], additionalProperties = false }
+delta = { audience = ["legal@hashirai-poc.test"] }
+
+[[policy.tool]]
+name = "mcp/clearance/memory_load"
+description = "Loads the value saved in a public memory scope."
+parameters = { type = "object", properties = { scope = { type = "string" } }, required = ["scope"], additionalProperties = false }
+delta = {}
+
+[externals]
+timeout_ms = 2000
+max_body_bytes = 65536
+
+# Identity source: `addr/<email>` has exactly one member, `<email>`. The command runs in
+# this file's directory and needs `node` on PATH.
+[externals.audience.rcpt]
+command = ["node", "./policy/rcpt-audience.mjs"]
+selectors = [{ template = "addr/<email>" }]
