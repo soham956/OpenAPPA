@@ -92,12 +92,35 @@ _Last updated 2026-10-19_
 - Combined wave 2 check (#6–#10 together): vitest 128/128 including the live APPA tests, typecheck ok, replay 8/8.
 - For T10.2: the live deny feedback differs from replay (host tool names, no "Alternative" block). Match on Quinn's recorded fixtures in `clearance/test/fixtures/runtime/`.
 
+## Wave 3: merged 2026-10-19 (combined check 220/220, including the live APPA tests)
+| Task | Agent | PR | Runtime | Result |
+|---|---|---|---|---|
+| T11.2 Drive tools | Remy | #14 | 1.9 min | Accepted |
+| T8.2 compare and expected | Mika | #15 | 3.1 min | Accepted |
+| T7.1 poller | Jules | #16 | 2.6 min | Accepted |
+| T4.1 reset and drop | Rowan | #17 | 3.2 min | Accepted. Factory wired later in #21 |
+| T5.2 Jev adapter | Ellis | #18 | 3.8 min | Accepted. Ruling: the fixture holds 9 files (08 and 09 never reach Jev) |
+| T3.2 Drive auth | Sasha | #19 | 4.1 min | Accepted |
+| T10.2 guard | Quinn | #20 | 7.1 min | Accepted |
+
+## Wave 4: merged 2026-10-19
+| Task | Agent | PR | Result |
+|---|---|---|---|
+| T4.1 follow-up: wire the Drive factory | Rowan | #21 | Merged |
+| T7.2 `npm start` | Remy | #22 | Accepted |
+| T5.1 rework: tests independent of the seed text | Ellis | #23 | The original T5.1 attempt is logged as rejected (found by Noor) |
+| T6.1 live Jev fixture | Noor | #25 | 3 recording runs. Seed 10 edited, now Legal **0.66** (thin margin against 0.70) |
+| T12.1 scripted agent | Rowan | #24 | Attempt 1 rejected: an unguarded listing. Attempt 2 adds a guarded `drive_list` under the new `list` step |
+| T10.2 follow-up: log the caller's step | Quinn | #27 | Merged |
+| T8.2 follow-up: expected `list` line | Mika | #26 | Merged |
+| T3.3 live Drive | Sasha | (no PR) | Passed with no fixes. Drive is in the step 0 state |
+- Soham did the OAuth consent at 13:47Z; the token is in `secrets/` (mode 600).
+- Reset takes 23–45 s on Workspace Drive, so do it before a run, not live. Reset trashes files (soft), so Soham may want to empty the Drive trash after the demo.
+- Stories done: S1–S6, S9, S10, S11. S7, S8 and S12 wait for T12.2 and the demo runs.
+
 ## Next
-1. Wave 3 is running (dispatched 13:30Z):
-   - Sasha T3.2, Rowan T4.1, Ellis T5.2, Jules T7.1 (new)
-   - Mika T8.2, Quinn T10.2, Remy T11.2
-2. Wave 4: Rowan T12.1, Remy T7.2, Noor T6.1 (live Jev), Sasha T3.3 (live Drive, with Soham's consent click).
-3. Soham: one browser consent click during T3.3 (wave 4).
+1. Wave 5: Rowan T12.2, the CI end-to-end test of step 2. Then the orchestrator accepts it.
+2. Phase 4: run `docs/demo-script.md` twice from a clean Drive, then `compare` must print `identical`. Then the final report to Soham.
 
 ## Blockers
 - None. Waiting on Soham's go-ahead at the checkpoint.

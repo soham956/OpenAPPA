@@ -56,3 +56,6 @@ Acceptance test: `docs/demo-script.md` (steps 0–4). 1 SP = up to 20 min of Opu
 - Hashirai Registry integration.
 - A decision-log viewer.
 - Retries, rate limits and deployment.
+- Poller durability: if the log write fails after a successful move, that classify line is lost. Persist pending lines and retry them.
+- A wider confidence margin for seed 10. It records at 0.66 against the 0.70 threshold, so a live re-record could cross it.
+- A faster reset on Workspace Drive (batch calls); today it takes 23–45 s.
