@@ -3,7 +3,7 @@
 import { google } from 'googleapis';
 import { type Config, getConfig } from '../config';
 import { type AuthOptions, type DriveAuth, getDriveAuth } from './auth';
-import { GoogleDriveClient } from './google';
+import { DEFAULT_TIMEOUT_MS, GoogleDriveClient } from './google';
 import type { DriveClient } from './types';
 
 export interface CreateDriveOptions extends AuthOptions {
@@ -11,6 +11,10 @@ export interface CreateDriveOptions extends AuthOptions {
   config?: Config;
   /** Auth builder (default: getDriveAuth). Test seam. */
   authFactory?: typeof getDriveAuth;
+  /** Per-request Drive timeout in ms (default DEFAULT_TIMEOUT_MS, 20 s). */
+  timeoutMs?: number;
+  /** Retries for retryable Drive failures (default 2). */
+  retries?: number;
 }
 
 /**
@@ -22,5 +26,11 @@ export async function createDriveClient(opts: CreateDriveOptions = {}): Promise<
   const cfg = opts.config ?? getConfig();
   const drive = cfg.requireDrive();
   const auth: DriveAuth = await (opts.authFactory ?? getDriveAuth)(drive, opts);
-  return new GoogleDriveClient(google.drive({ version: 'v3', auth }), drive.rootFolderId);
+  const timeoutMs = opts.timeoutMs ?? DEFAULT_TIMEOUT_MS;
+  // gaxios gets the timeout too (it aborts the socket); GoogleDriveClient also
+  // enforces it per request, so a hung call always rejects.
+  return new GoogleDriveClient(google.drive({ version: 'v3', auth, timeout: timeoutMs }), drive.rootFolderId, {
+    timeoutMs,
+    ...(opts.retries !== undefined ? { retries: opts.retries } : {}),
+  });
 }
