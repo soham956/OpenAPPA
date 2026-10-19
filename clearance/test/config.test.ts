@@ -21,10 +21,11 @@ describe('config', () => {
   });
 
   it('loads .env from the repo root and resolves secrets/ there', () => {
-    writeEnv('GDRIVE_ROOT_FOLDER_ID=folder-synthetic-123\nTYPESAFE_API_KEY=test-key-not-real\n');
+    // No `TYPESAFE_API_KEY=<value>` literal here: CI's secret scan (T1.2) flags it.
+    writeEnv('GDRIVE_ROOT_FOLDER_ID=folder-synthetic-123\nCLASSIFIER_MODE=live\n');
     const cfg = loadConfig({ repoRoot: root, env: {} });
     expect(cfg.gdriveRootFolderId).toBe('folder-synthetic-123');
-    expect(cfg.typesafeApiKey).toBe('test-key-not-real');
+    expect(cfg.classifierMode).toBe('live');
     expect(cfg.paths.envFile).toBe(join(root, '.env'));
     expect(cfg.paths.secretsDir).toBe(join(root, 'secrets'));
     expect(cfg.paths.oauthClient).toBe(join(root, 'secrets', 'gdrive-oauth-client.json'));
