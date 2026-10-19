@@ -93,7 +93,7 @@ type Results = Record<string, GuardResult>;
 async function runDemo(guard: Guard, w: World): Promise<Results> {
   const r: Results = {};
   await guard.start('agent-1', PROMPT);
-  r.list = await guard.call('agent-1', 'read', 'drive_list', { folder: 'legal' });
+  r.list = await guard.call('agent-1', 'list', 'drive_list', { folder: 'legal' });
   for (const name of LEGAL_FILES) {
     r[name] = await guard.call('agent-1', 'read', 'drive_read', { fileId: w.ids[name] as string });
   }
@@ -157,10 +157,10 @@ function checkDemo(r: Results, w: World) {
   expect(readJsonl(w.outbox)).toEqual([{ to: [LEGAL], subject: 'Legal documents for review', attachments: LEGAL_FILES, session: 'agent-1' }]);
   expect(w.tools.drive_read).toHaveBeenCalledTimes(4);
 
-  // One enforce line per attempt, with the caller's step (drive_list logs as `read`).
+  // One enforce line per attempt, with the caller's step as given.
   const lines = w.log.readEnforce().map(({ ts: _ts, offerId, ...rest }) => ({ ...rest, offer: offerId !== undefined }));
   expect(lines).toEqual([
-    { kind: 'enforce', step: 'read', session: 'agent-1', tool: 'drive_list', decision: 'allow', offer: false },
+    { kind: 'enforce', step: 'list', session: 'agent-1', tool: 'drive_list', decision: 'allow', offer: false },
     ...LEGAL_FILES.map((file, i) => ({ kind: 'enforce', step: 'read', session: 'agent-1', tool: 'drive_read', file, decision: 'allow', offer: i === 0 })),
     { kind: 'enforce', step: '2a', session: 'agent-1', tool: 'send', to: [LEGAL, COUNSEL], decision: 'deny', reason: REASON_FILE, offer: false },
     { kind: 'enforce', step: '2b', session: 'agent-1', tool: 'send', to: [COUNSEL], decision: 'deny', reason: REASON_FILE, offer: false },
@@ -347,14 +347,14 @@ describe('guard on recorded runtime responses', () => {
     expect(w.log.readEnforce().map((l: EnforceLine) => l.decision)).toEqual(['error', 'error', 'error']);
   });
 
-  it('logs drive_list as step read whatever step the caller passes', async () => {
+  it('logs drive_list with the step the caller passes (list)', async () => {
     const replies = [{ protocol: 1, decision: 'ack' }, { protocol: 1, decision: 'ack' }, { protocol: 1, decision: 'allow_call' }, { protocol: 1, decision: 'ack' }];
     const fetchImpl: typeof fetch = async () => new Response(JSON.stringify(replies.shift()));
     const guard = guardFor(w, new HookClient({ baseUrl: 'http://127.0.0.1:1', fetch: fetchImpl }), { callRemedy: vi.fn(), close: async () => {} }, 'x-');
-    const r = await guard.call('agent-1', '2a', 'drive_list', { folder: 'legal' });
+    const r = await guard.call('agent-1', 'list', 'drive_list', { folder: 'legal' });
     expect(r.decision).toBe('allow');
     expect((r as { result: unknown }).result).toHaveLength(4);
-    expect(w.log.readEnforce()[0]?.step).toBe('read');
+    expect(w.log.readEnforce()[0]).toMatchObject({ step: 'list', tool: 'drive_list', decision: 'allow' });
   });
 });
 
