@@ -149,7 +149,8 @@ export class Guard {
 
   /** One guarded call. Never throws: every outcome is an allow, deny or error result. */
   async call<T extends ToolName>(session: SessionId, step: Step, tool: T, args: AgentArgs[T]): Promise<GuardResult<T>> {
-    const logStep: Step = tool === 'drive_list' ? 'read' : step;
+    // The caller's step tag is logged as given (the agent's listing is `list`).
+    const logStep: Step = step;
     const base: Omit<EnforceLine, 'kind' | 'decision' | 'reason' | 'offerId' | 'ts'> = {
       step: logStep,
       session,
