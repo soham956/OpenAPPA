@@ -80,11 +80,24 @@ _Last updated 2026-10-19_
   - `drive_list` logs as step `read`.
   - Quinn's `clearance/policy/README.md` holds the tool argument schemas and the exact deny feedback.
 
+## Wave 2: accepted 2026-10-19; merging after T1.2 (CI)
+| Task | Agent | PR | Runtime | Result |
+|---|---|---|---|---|
+| T8.1 decision log | Mika | #6 | 0.9 min | Accepted |
+| T11.1 send and memory tools | Remy | #7 | 1.6 min | Accepted |
+| T5.1 classifier core | Ellis | #8 | 2.9 min | Accepted. One commit doesn't typecheck alone; the tip is fine |
+| T3.1 Drive client | Sasha | #9 | 4.5 min | Accepted. Trash is soft; nothing outside the tree is touched |
+| T10.1 sidecar wire and remedy | Quinn | #10 | 6.3 min | Accepted. The live remedy flow works against the real `appa` |
+| T1.2 CI | Rowan | (pending) | - | Was blocked until Soham added the gh `workflow` scope (2026-10-19). Now resumed |
+- Combined wave 2 check (#6–#10 together): vitest 128/128 including the live APPA tests, typecheck ok, replay 8/8.
+- For T10.2: the live deny feedback differs from replay (host tool names, no "Alternative" block). Match on Quinn's recorded fixtures in `clearance/test/fixtures/runtime/`.
+
 ## Next
-1. Wave 2:
-   - Rowan T1.2 (CI): merge first, then add its check as required on `main`.
-   - Sasha T3.1, Ellis T5.1, Mika T8.1, Quinn T10.1 and Remy T11.1.
-2. Soham: one browser consent click during T3.3 (wave 4).
+1. Merge T1.2 when its CI is green, then make its check required. Then merge #6–#10 in order.
+2. Wave 3:
+   - Sasha T3.2, Rowan T4.1, Ellis T5.2, Jules T7.1 (new)
+   - Mika T8.2, Quinn T10.2, Remy T11.2
+3. Soham: one browser consent click during T3.3 (wave 4).
 
 ## Blockers
 - None. Waiting on Soham's go-ahead at the checkpoint.
