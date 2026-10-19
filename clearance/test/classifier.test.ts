@@ -1,4 +1,4 @@
-import { copyFileSync, existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -7,12 +7,11 @@ import { loadConfig } from '../src/config';
 import { classify, createClassifier, decideFromAnswer } from '../src/classifier/decide';
 import { FixtureError, FixtureStore, MissingJevError, parseFixture, serializeFixture, sha256 } from '../src/classifier/fixture-store';
 import { findSpecimenId, hasSpecimenId } from '../src/classifier/specimen';
-import type { Jev, JevAnswer } from '../src/classifier/types';
+import type { FixtureFile, Jev, JevAnswer } from '../src/classifier/types';
 import { isClassifyLine } from '../src/log/schema';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const seedDir = join(here, '..', 'seed');
-const SAMPLE = join(here, 'fixtures', 'classifications.sample.json');
 
 const SEEDS = [
   '01-mutual-nda-kestrel-orbit.txt',
@@ -42,6 +41,28 @@ const EXPECTED: Record<string, { label: string; rule: string }> = {
 };
 const seed = (f: string) => readFileSync(join(seedDir, f), 'utf8');
 const base = (f: string) => f.replace(/^new\//, '');
+
+// Hand-made Jev answers for the non-ID seeds, keyed by file name. The fixture
+// is built at test time from the CURRENT seed contents, so editing a seed's
+// text never breaks these tests. Only file 10 sits below the 0.70 threshold.
+const ANSWERS: Record<string, JevAnswer> = {
+  '01-mutual-nda-kestrel-orbit.txt': { label: 'Legal', confidence: 0.95 },
+  '02-master-services-agreement.txt': { label: 'Legal', confidence: 0.93 },
+  '03-cease-and-desist-letter.txt': { label: 'Legal', confidence: 0.91 },
+  '04-board-resolution-oct.txt': { label: 'Legal', confidence: 0.84 },
+  '05-invoice-0193.txt': { label: 'Accounting', confidence: 0.97 },
+  '06-q3-expense-report.txt': { label: 'Accounting', confidence: 0.94 },
+  '07-trial-balance-sept.txt': { label: 'Accounting', confidence: 0.96 },
+  '10-settlement-payment-schedule.txt': { label: 'Legal', confidence: 0.58 },
+  'new/11-vendor-invoice-0207.txt': { label: 'Accounting', confidence: 0.96 },
+};
+
+/** Write a fixture for the current seed contents into `path` (always a temp file). */
+function writeSeedFixture(path: string): void {
+  const entries: FixtureFile = {};
+  for (const [f, a] of Object.entries(ANSWERS)) entries[sha256(seed(f))] = { ...a, note: base(f) };
+  writeFileSync(path, serializeFixture(entries));
+}
 
 /** A fake Jev that records every argument it receives. */
 function fakeJev(answer: JevAnswer = { label: 'Legal', confidence: 0.9 }) {
@@ -114,7 +135,7 @@ describe('threshold decision', () => {
 
 describe('fixture store', () => {
   it('a hit → source fixture, Jev not called', async () => {
-    copyFileSync(SAMPLE, join(dir, 'f.json'));
+    writeSeedFixture(join(dir, 'f.json'));
     const jev = fakeJev();
     const store = new FixtureStore({ path: join(dir, 'f.json'), jev });
     const content = seed('10-settlement-payment-schedule.txt');
@@ -144,7 +165,7 @@ describe('fixture store', () => {
 
   it('live mode always calls Jev and re-records', async () => {
     const path = join(dir, 'f.json');
-    copyFileSync(SAMPLE, path);
+    writeSeedFixture(path);
     const jev = fakeJev({ label: 'Legal', confidence: 0.61 });
     const store = new FixtureStore({ path, jev, mode: 'live' });
     const content = seed('10-settlement-payment-schedule.txt');
@@ -188,9 +209,15 @@ describe('Jev never receives the file name', () => {
   });
 });
 
-describe('sample fixture over the seed files', () => {
+describe('seed fixture over the seed files', () => {
+  let seedFixture: string;
+  beforeEach(() => {
+    seedFixture = join(dir, 'seed-fixture.json');
+    writeSeedFixture(seedFixture);
+  });
+
   it('is sorted by hash and keyed by the seed contents', () => {
-    const text = readFileSync(SAMPLE, 'utf8');
+    const text = readFileSync(seedFixture, 'utf8');
     expect(text).toBe(serializeFixture(parseFixture(text)));
     const entries = parseFixture(text);
     for (const [hash, e] of Object.entries(entries)) {
@@ -202,7 +229,7 @@ describe('sample fixture over the seed files', () => {
 
   it('replays all 11 demo files to the expected label and rule without Jev', async () => {
     const jev = fakeJev();
-    const classifyDoc = createClassifier({ fixturePath: SAMPLE, jev, mode: 'replay', threshold: 0.7 });
+    const classifyDoc = createClassifier({ fixturePath: seedFixture, jev, mode: 'replay', threshold: 0.7 });
     for (const f of SEEDS) {
       const c = await classifyDoc({ content: seed(f), file: base(f) });
       expect({ label: c.label, rule: c.rule }, f).toEqual(EXPECTED[f]);
@@ -213,7 +240,7 @@ describe('sample fixture over the seed files', () => {
   });
 
   it('produces the demo-script line for file 10', async () => {
-    const classifyDoc = createClassifier({ fixturePath: SAMPLE, mode: 'replay', threshold: 0.7 });
+    const classifyDoc = createClassifier({ fixturePath: seedFixture, mode: 'replay', threshold: 0.7 });
     const file = '10-settlement-payment-schedule.txt';
     expect(await classifyDoc({ content: seed(file), file })).toEqual({
       label: 'High Risk',
