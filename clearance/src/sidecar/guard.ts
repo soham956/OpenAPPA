@@ -6,12 +6,14 @@
 //   4. allow_call: run the tool, post tool_result, honour ack / deliver_value / replace_output / block;
 //   5. deny_call with an Accept offer on drive_read or memory_load: run the remedy, retry once;
 //   6. deny_call otherwise: the tool never runs; the reason is the runtime's, reworded;
-//   7. transport error, timeout, refuse, audience-source failure: fail closed (`error`).
+//   7. transport error, timeout, refuse, audience-source failure: fail closed (`error`);
+//   8. drive_read whose file moved between the check and the read: fail closed (`error`).
 // Every attempt writes exactly one `enforce` line. The guard never decides on its own.
 import type { DriveClient, FolderKey } from '../drive/types';
 import { isFolderKey } from '../drive/types';
 import type { DecisionLog } from '../log/decision-log';
 import type { EnforceLine, SessionId, Step, ToolName } from '../log/schema';
+import { driveList, driveRead } from '../tools/drive';
 import { type MemoryEntry, memoryLoad, memorySave } from '../tools/memory';
 import { type SendArgs, send } from '../tools/send';
 import { type LabelSource, fileSource, isSourceFailure, memorySource, reasonFor } from './reasons';
@@ -23,6 +25,9 @@ export const DEFAULT_PROMPT = '(clearance scripted agent)';
 
 /** Tools whose narrowing the guard accepts. Any other narrowing offer is a deny. */
 export const NARROWING_TOOLS: ReadonlySet<ToolName> = new Set(['drive_read', 'memory_load']);
+
+/** The reason prefix when a file moved between the APPA check and the read. */
+export const FOLDER_CHANGED = '[guard] folder changed between check and read';
 
 /** What the agent passes. `folder` on drive_read is ignored: the guard resolves it. */
 export interface AgentArgs {
@@ -40,6 +45,7 @@ export interface DriveListing {
 export interface DriveReadResult {
   name: string;
   content: string;
+  /** The folder the file was in when it was read. The guard checks it. */
   folder: string;
 }
 
@@ -55,6 +61,7 @@ export interface ToolResults {
 /** The plain tool functions. They never call APPA. Injectable for tests (spies). */
 export interface GuardTools {
   drive_list(args: { folder: FolderKey }, ctx: ToolContext): Promise<DriveListing[]>;
+  /** Must report the folder the file is in after the read; a mismatch fails closed. */
   drive_read(args: { fileId: string; folder: string }, ctx: ToolContext): Promise<DriveReadResult>;
   send(args: SendArgs, ctx: ToolContext): Promise<ToolResults['send']>;
   memory_save(args: { scope: string; value: string }, ctx: ToolContext): Promise<MemoryEntry>;
@@ -83,11 +90,21 @@ export interface GuardOptions {
 export type GuardResult<T extends ToolName = ToolName> =
   | { decision: 'allow'; tool: T; result: ToolResults[T] | string; line: EnforceLine }
   | { decision: 'deny'; tool: T; reason: string; line: EnforceLine }
-  | { decision: 'error'; tool: T; reason: string; line: EnforceLine };
+  /** `line` is absent only when the decision log itself refused the write. */
+  | { decision: 'error'; tool: T; reason: string; line?: EnforceLine };
 
 interface SessionState {
   started: boolean;
   source?: LabelSource;
+}
+
+/** One attempt's outcome, before it is logged. */
+type Attempt =
+  | { decision: 'allow'; result: unknown; fields: AttemptFields }
+  | { decision: 'deny' | 'error'; reason: string; fields: AttemptFields };
+interface AttemptFields {
+  file?: string;
+  offerId?: string;
 }
 
 /** Thrown inside one attempt to end it as `error` with this reason. */
@@ -98,6 +115,20 @@ const errorReason = (error: unknown): string => {
   return message.startsWith('[appa]') || message.startsWith('[guard]') ? message : `[guard] ${message}`;
 };
 
+const isStringArray = (v: unknown): v is string[] => Array.isArray(v) && v.every((x) => typeof x === 'string');
+
+/**
+ * The enforce-line fields taken from the agent's arguments, normalised so the log accepts
+ * them whatever the agent passed: `to` only as an array of strings, `scope` only as a string.
+ * Arguments APPA would reject are still proposed (and denied there); they are just not logged.
+ */
+function logFields(tool: ToolName, args: unknown): Pick<EnforceLine, 'to' | 'scope'> {
+  const a = (typeof args === 'object' && args !== null ? args : {}) as Record<string, unknown>;
+  if (tool === 'send' && isStringArray(a.to)) return { to: [...a.to] };
+  if ((tool === 'memory_save' || tool === 'memory_load') && typeof a.scope === 'string') return { scope: a.scope };
+  return {};
+}
+
 export class Guard {
   private readonly sessions = new Map<SessionId, SessionState>();
   private readonly tools: GuardTools;
@@ -105,13 +136,9 @@ export class Guard {
   constructor(private readonly opts: GuardOptions) {
     const { outboxPath, memoryPath } = opts;
     const defaults: GuardTools = {
-      async drive_list(args, ctx) {
-        return (await ctx.drive.list(args.folder)).map((f) => ({ id: f.id, name: f.name }));
-      },
-      async drive_read(args, ctx) {
-        const file = await ctx.drive.read(args.fileId);
-        return { name: file.name, content: file.content, folder: args.folder };
-      },
+      drive_list: (args, ctx) => driveList(ctx.drive, args),
+      // Reports the folder the file is in after the read, which the guard checks.
+      drive_read: (args, ctx) => driveRead(ctx.drive, args),
       async send(args, ctx) {
         const line = send(args, { session: ctx.session, outboxPath });
         return { to: line.to, subject: line.subject, attachments: line.attachments };
@@ -147,29 +174,51 @@ export class Guard {
     await this.opts.hook.turnEnd(this.root(session));
   }
 
-  /** One guarded call. Never throws: every outcome is an allow, deny or error result. */
+  /**
+   * One guarded call. Total: it never throws, always returns an allow, deny or error result,
+   * and always makes exactly one enforce-log write. If that write fails, the result is
+   * `error` (with no `line`) and nothing the tool returned reaches the agent.
+   */
   async call<T extends ToolName>(session: SessionId, step: Step, tool: T, args: AgentArgs[T]): Promise<GuardResult<T>> {
-    // The caller's step tag is logged as given (the agent's listing is `list`).
-    const logStep: Step = step;
-    const base: Omit<EnforceLine, 'kind' | 'decision' | 'reason' | 'offerId' | 'ts'> = {
-      step: logStep,
-      session,
-      tool,
-      ...(tool === 'send' && Array.isArray((args as SendArgs).to) ? { to: [...(args as SendArgs).to] } : {}),
-      ...(tool === 'memory_save' || tool === 'memory_load' ? { scope: (args as { scope: string }).scope } : {}),
-    };
-    const root = this.root(session);
-    let offerId: string | undefined;
-    let file: string | undefined;
-    const finish = (decision: 'allow' | 'deny' | 'error', reason?: string): EnforceLine =>
-      this.opts.log.writeEnforce({ ...base, ...(file !== undefined ? { file } : {}), decision, reason, offerId });
+    let attempt: Attempt;
+    try {
+      attempt = await this.attempt(session, tool, args);
+    } catch (error) {
+      attempt = { decision: 'error', reason: errorReason(error), fields: {} };
+    }
+    let line: EnforceLine;
+    try {
+      line = this.opts.log.writeEnforce({
+        // The caller's step tag is logged as given (the agent's listing is `list`).
+        step,
+        session,
+        tool,
+        ...logFields(tool, args),
+        ...attempt.fields,
+        decision: attempt.decision,
+        reason: attempt.decision === 'allow' ? undefined : attempt.reason,
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      return { decision: 'error', tool, reason: `[guard] the decision log refused the enforce line: ${message}` };
+    }
+    if (attempt.decision === 'allow') {
+      return { decision: 'allow', tool, result: attempt.result as ToolResults[T] | string, line };
+    }
+    return { decision: attempt.decision, tool, reason: attempt.reason, line };
+  }
 
+  /** The attempt itself, before it is logged. */
+  private async attempt(session: SessionId, tool: ToolName, args: unknown): Promise<Attempt> {
+    const root = this.root(session);
+    const fields: AttemptFields = {};
+    const fail = (reason: string): Attempt => ({ decision: 'error', reason, fields });
     try {
       await this.start(session, DEFAULT_PROMPT).catch((error: unknown) => {
         throw new FailClosed(errorReason(error));
       });
       const appaArgs = await this.trustedArgs(tool, args);
-      if (tool === 'drive_read') file = await this.fileName(appaArgs as { fileId: string; folder: string });
+      if (tool === 'drive_read') fields.file = await this.fileName(appaArgs as { fileId: string; folder: string });
 
       let call: WireCall = { tool: rawToolName(tool), arguments: appaArgs, callId: newCallId() };
       let decision = await this.opts.hook.toolCall(root, call);
@@ -178,18 +227,16 @@ export class Guard {
         const offer = narrowingOfferId(decision);
         if (offer && NARROWING_TOOLS.has(tool) && !isSourceFailure(decision.feedback)) {
           await executeRemedy(this.opts.hook, this.opts.remedy, root, offer);
-          offerId = offer;
+          fields.offerId = offer;
           const state = this.state(session);
           state.source ??=
-            tool === 'drive_read'
-              ? fileSource(String(appaArgs.folder))
-              : memorySource(String(appaArgs.scope));
+            tool === 'drive_read' ? fileSource(String(appaArgs.folder)) : memorySource(String(appaArgs.scope));
           call = { ...call, callId: newCallId() };
           decision = await this.opts.hook.toolCall(root, call);
         }
       }
 
-      if (decision.decision === 'deny_call') return this.denied(tool, decision, args, session, finish);
+      if (decision.decision === 'deny_call') return this.denied(tool, decision, args, session, fields);
       if (decision.decision !== 'allow_call') {
         throw new FailClosed(`[guard] runtime answered ${decision.decision} to ${call.tool}`);
       }
@@ -201,53 +248,49 @@ export class Guard {
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
         await this.opts.hook.toolResult(root, call, { status: 'failure', message }).catch(() => {});
-        const line = finish('error', `[guard] ${tool} failed: ${message}`);
-        return { decision: 'error', tool, reason: line.reason as string, line };
+        return fail(`[guard] ${tool} failed: ${message}`);
       }
-      if (tool === 'drive_read') file = (value as DriveReadResult).name;
+      if (tool === 'drive_read') {
+        // Check-then-read race: APPA judged the folder proposed above. A file that moved
+        // before the read is not the file APPA judged, so its content never reaches the agent
+        // and the dispatch is settled as a failure, which admits no body.
+        const read = value as Partial<DriveReadResult> | undefined;
+        if (typeof read?.name === 'string') fields.file = read.name;
+        if (read?.folder !== appaArgs.folder) {
+          const reason = `${FOLDER_CHANGED} (checked ${String(appaArgs.folder)}, read ${String(read?.folder)})`;
+          await this.opts.hook.toolResult(root, call, { status: 'failure', message: reason }).catch(() => {});
+          return fail(reason);
+        }
+      }
       const outcome: Outcome = { status: 'success', body: value ?? null };
       const settled = await this.opts.hook.toolResult(root, call, outcome);
-      if (settled.decision === 'block') {
-        const line = finish('deny', settled.reason.trim());
-        return { decision: 'deny', tool, reason: settled.reason.trim(), line };
-      }
+      if (settled.decision === 'block') return { decision: 'deny', reason: settled.reason.trim(), fields };
       const result =
         settled.decision === 'replace_output'
           ? settled.output
           : settled.decision === 'deliver_value'
             ? settled.value
-            : (value as ToolResults[T]);
-      const line = finish('allow');
-      return { decision: 'allow', tool, result, line };
+            : value;
+      return { decision: 'allow', result, fields };
     } catch (error) {
-      const reason = errorReason(error);
-      const line = finish('error', reason);
-      return { decision: 'error', tool, reason, line };
+      return fail(errorReason(error));
     }
   }
 
-  private denied<T extends ToolName>(
-    tool: T,
-    deny: DenyCall,
-    args: AgentArgs[T],
-    session: SessionId,
-    finish: (decision: 'deny' | 'error', reason?: string) => EnforceLine,
-  ): GuardResult<T> {
-    if (isSourceFailure(deny.feedback)) {
-      const reason = deny.feedback.trim();
-      return { decision: 'error', tool, reason, line: finish('error', reason) };
-    }
+  private denied(tool: ToolName, deny: DenyCall, args: unknown, session: SessionId, fields: AttemptFields): Attempt {
+    if (isSourceFailure(deny.feedback)) return { decision: 'error', reason: deny.feedback.trim(), fields };
+    const to = (args as { to?: unknown } | undefined)?.to;
     const reason = reasonFor(deny.feedback, {
       tool,
-      to: tool === 'send' ? (args as SendArgs).to : undefined,
+      to: tool === 'send' && isStringArray(to) ? to : undefined,
       source: this.sessions.get(session)?.source,
     });
-    return { decision: 'deny', tool, reason, line: finish('deny', reason) };
+    return { decision: 'deny', reason, fields };
   }
 
   /** The APPA arguments: exactly the policy schema, trusted fields filled by the guard. */
   private async trustedArgs(tool: ToolName, args: unknown): Promise<Record<string, unknown>> {
-    const a = (args ?? {}) as Record<string, unknown>;
+    const a = (typeof args === 'object' && args !== null ? args : {}) as Record<string, unknown>;
     switch (tool) {
       case 'drive_read': {
         if (typeof a.fileId !== 'string' || !a.fileId) throw new FailClosed('[guard] drive_read needs a fileId');
